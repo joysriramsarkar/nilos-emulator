@@ -1,0 +1,842 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>নীল ওএস (NilOS) — স্টুডিও ডিভাইস এমুলেটর • নীলাং ইকোসিস্টেম</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="device.css">
+</head>
+<body class="theme-dark">
+    <!-- টপ স্টুডিও বার -->
+    <header class="emulator-topbar">
+        <div class="topbar-left">
+            <div class="topbar-brand">
+                <span class="studio-logo">📱</span>
+                <div>
+                    <h1>নীল ওএস ডিভাইস এমুলেটর স্টুডিও</h1>
+                    <span class="studio-sub">NilOS 2.0 Studio Emulator • Onuron Runtime VM</span>
+                </div>
+            </div>
+            <div class="device-profile-tabs">
+                <button class="profile-tab active" data-profile="phone" title="স্মার্টফোন মোড (6.7-inch)">📱 NilPhone</button>
+                <button class="profile-tab" data-profile="tablet" title="ট্যাবলেট মোড (11.0-inch)">💻 NilPad</button>
+                <button class="profile-tab" data-profile="pos" title="রিটেইল টার্মিনাল মোড (With Thermal Printer)">🏪 NilPOS</button>
+                <button class="profile-tab" data-profile="desktop" title="ডেস্কটপ উইন্ডো মোড">🖥️ Desktop</button>
+            </div>
+        </div>
+        <div class="topbar-right">
+            <button class="topbar-btn" id="btnDevToolsToggle" title="ডেভেলপার ডায়াগনস্টিকস প্যানেল">
+                <span>🛠️ ডেভটুলস</span>
+            </button>
+            <button class="topbar-btn btn-qemu-launch" id="btnLaunchQEMU" title="নেটিভ QEMU x86_64 ভার্চুয়াল মেশিন বুট করুন">
+                <span>⚡ QEMU বুট</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- এমুলেটর মূল ওয়ার্কস্পেস -->
+    <div class="emulator-main-container">
+        <!-- বাম পাশে হার্ডওয়্যার কন্ট্রোল প্যানেল -->
+        <aside class="emulator-sidebar">
+            <!-- ব্র্যান্ড ও ওএস স্ট্যাটাস -->
+            <div class="sidebar-card">
+                <div class="brand-badge">
+                    <span class="pulse-dot"></span>
+                    <span id="osStatusBadge">NilOS v2.0 • রানিং</span>
+                </div>
+                <h2>ডিভাইস হার্ডওয়্যার</h2>
+                <p>ভার্চুয়াল টাচস্ক্রিন, প্রিন্টার ও সেন্সর নিয়ন্ত্রণ করুন।</p>
+            </div>
+
+            <!-- হার্ডওয়্যার অ্যাকশন বাটনসমূহ -->
+            <div class="sidebar-card controls-card">
+                <h3>কন্ট্রোল বাটনস</h3>
+                <div class="device-actions-grid">
+                    <button class="action-btn" id="btnLockToggle" title="লক / আনলক">
+                        <span class="icon">🔒</span>
+                        <span>লক স্ক্রিন</span>
+                    </button>
+                    <button class="action-btn" id="btnRotate" title="স্ক্রিন রোটেট (Portrait / Landscape)">
+                        <span class="icon">🔄</span>
+                        <span>রোটেট</span>
+                    </button>
+                    <button class="action-btn" id="btnThemeToggle" title="সিস্টেম থিম সুইচ">
+                        <span class="icon">🎨</span>
+                        <span>থিম পরিবর্তন</span>
+                    </button>
+                    <button class="action-btn" id="btnKeyboardToggle" title="অন-স্ক্রিন বাংলা কীবোর্ড">
+                        <span class="icon">⌨️</span>
+                        <span>কীবোর্ড</span>
+                    </button>
+                    <button class="action-btn" id="btnControlCenter" title="কুইক সেটিংস শেড">
+                        <span class="icon">🎛️</span>
+                        <span>কন্ট্রোল শেড</span>
+                    </button>
+                    <button class="action-btn" id="btnRestartOS" title="ওএস রিবুট">
+                        <span class="icon">⚡</span>
+                        <span>রিস্টার্ট</span>
+                    </button>
+                    <button class="action-btn" id="btnScreenshot" title="স্ক্রিনশট নিন">
+                        <span class="icon">📸</span>
+                        <span>স্ক্রিনশট</span>
+                    </button>
+                    <button class="action-btn" id="btnAppSwitcher" title="রিসেন্ট অ্যাপস মাল্টিটাস্কিং">
+                        <span class="icon">🗂️</span>
+                        <span>টাস্ক সুইচ</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- ভার্চুয়াল সেন্সর ও পেরিফেরাল নিয়ন্ত্রণ -->
+            <div class="sidebar-card sensors-card">
+                <h3>সেন্সর ও পেরিফেরালস</h3>
+                <div class="sensor-row">
+                    <label>🔋 ব্যাটারি লেভেল: <strong id="batteryValText">98%</strong></label>
+                    <input type="range" id="batterySlider" min="5" max="100" value="98" class="sensor-slider">
+                </div>
+                <div class="sensor-row">
+                    <label>📶 নেটওয়ার্ক স্পিড:</label>
+                    <select id="networkSelect" class="sensor-select">
+                        <option value="5g">Onuron 5G (1.2 Gbps)</option>
+                        <option value="4g">Onuron 4G LTE (50 Mbps)</option>
+                        <option value="3g">Onuron 3G (2 Mbps)</option>
+                        <option value="offline">অফলাইন (No Internet)</option>
+                    </select>
+                </div>
+                <div class="sensor-row btn-row">
+                    <button class="mini-tool-btn" id="btnSimulateScan">📸 বারকোড স্ক্যান</button>
+                    <button class="mini-tool-btn" id="btnSimulatePrint">🖨️ পেপার টেস্ট</button>
+                </div>
+            </div>
+
+            <!-- হার্ডওয়্যার স্পেসিফিকেশন -->
+            <div class="sidebar-card hw-card">
+                <h3>ভার্চুয়াল স্পেক্স</h3>
+                <div class="hw-spec-list">
+                    <div class="hw-item"><span>কার্নেল:</span> <strong>Onuron x86_64</strong></div>
+                    <div class="hw-item"><span>র‍্যাম:</span> <strong>8 GB LPDDR5X</strong></div>
+                    <div class="hw-item"><span>ডিসপ্লে:</span> <strong>120Hz OLED Touch</strong></div>
+                    <div class="hw-item"><span>বাস:</span> <strong>NilBus IPC 1.0</strong></div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- মাঝখানে ডিভাইস ফ্রেম ও ইন্টারফেস -->
+        <div class="device-stage">
+            <!-- থার্মাল পেপার স্লট ও রোলিং রিসিট (NilPOS & Printing Animation) -->
+            <div class="thermal-paper-slot" id="thermalPaperSlot">
+                <div class="thermal-receipt-paper hidden" id="thermalReceiptPaper">
+                    <div class="receipt-tear-edge"></div>
+                    <div class="receipt-header">
+                        <h4>🏪 লখন ভাণ্ডার এন্টারপ্রাইজ</h4>
+                        <p>অনুরণ রিটেইল পিওএস টার্মিনাল</p>
+                        <p class="receipt-meta" id="rcptMeta">ইনভয়েস: INV-20261007-001</p>
+                    </div>
+                    <div class="receipt-divider">--------------------------------</div>
+                    <div class="receipt-items-table" id="rcptItemsTable">
+                        <!-- আইটেমস -->
+                    </div>
+                    <div class="receipt-divider">--------------------------------</div>
+                    <div class="receipt-totals" id="rcptTotals">
+                        <!-- টোটাল -->
+                    </div>
+                    <div class="receipt-footer">
+                        <p>ধন্যবাদ, আবার আসবেন!</p>
+                        <p class="receipt-barcode">||| | |||| || ||| |||| |</p>
+                    </div>
+                    <button class="close-receipt-btn" id="btnCloseReceipt">✕ বন্ধ করুন</button>
+                </div>
+            </div>
+
+            <!-- ফিজিক্যাল ডিভাইস ফ্রেম (স্মার্টফোন / ট্যাবলেট বডি) -->
+            <div class="device-frame-wrapper profile-phone" id="deviceWrapper">
+                <!-- ফিজিক্যাল হার্ডওয়্যার বাটনসমূহ -->
+                <div class="hardware-button hw-volume-up" id="hwVolUp" title="ভলিউম +"></div>
+                <div class="hardware-button hw-volume-down" id="hwVolDown" title="ভলিউম -"></div>
+                <div class="hardware-button hw-action" id="hwActionBtn" title="অ্যাকশন বাটন"></div>
+                <div class="hardware-button hw-power" id="hwPower" title="পাওয়ার বাটন"></div>
+
+                <!-- ডিভাইস বডি ও টাইটানিয়াম বেজেল -->
+                <div class="phone-body" id="phoneBody">
+                    <!-- টাচস্ক্রিন ডিসপ্লে -->
+                    <div class="touch-screen" id="touchScreen">
+                        <!-- লেজার বারকোড স্ক্যানার ওভারলে (POS Scanner Animation) -->
+                        <div class="barcode-scanner-overlay hidden" id="scannerOverlay">
+                            <div class="scanner-laser"></div>
+                            <div class="scanner-frame">
+                                <span>বারকোড / কিউআর কোড স্ক্যান হচ্ছে...</span>
+                            </div>
+                        </div>
+
+                        <!-- ডায়নামিক আইল্যান্ড (Dynamic Island) -->
+                        <div class="dynamic-island" id="dynamicIsland">
+                            <div class="camera-lens"></div>
+                            <div class="island-content hidden" id="islandContent">
+                                <span class="island-icon" id="islandIcon">📝</span>
+                                <span class="island-text" id="islandText">স্বয়ংক্রিয় সংরক্ষিত</span>
+                            </div>
+                            <div class="island-media-waveform hidden" id="islandWaveform">
+                                <span></span><span></span><span></span><span></span>
+                            </div>
+                        </div>
+
+                        <!-- ১. স্ট্যাটাস বার -->
+                        <div class="os-status-bar" id="statusBar">
+                            <div class="status-left">
+                                <span class="status-time" id="clockText">12:00</span>
+                            </div>
+                            <div class="status-right">
+                                <span class="status-carrier" id="statusCarrier">Onuron 5G</span>
+                                <span class="status-icon" id="statusWifi">📶</span>
+                                <span class="status-icon" id="statusBatteryIcon">🔋</span>
+                                <span class="status-battery-pct" id="statusBatteryPct">98%</span>
+                            </div>
+                        </div>
+
+                        <!-- ২. কুইক সেটিংস / কন্ট্রোল সেন্টার শেড (Pull-down Shade) -->
+                        <div class="os-control-center hidden" id="controlCenter">
+                            <div class="cc-header">
+                                <h3>কন্ট্রোল সেন্টার</h3>
+                                <button class="cc-close-btn" id="btnCloseCC">✕</button>
+                            </div>
+                            <div class="cc-grid">
+                                <div class="cc-tile active" id="ccWifiTile">
+                                    <span class="cc-icon">📶</span>
+                                    <span>ওয়াইফাই</span>
+                                </div>
+                                <div class="cc-tile active" id="ccBluetoothTile">
+                                    <span class="cc-icon">ᛒ</span>
+                                    <span>ব্লুটুথ</span>
+                                </div>
+                                <div class="cc-tile" id="ccAirplaneTile">
+                                    <span class="cc-icon">✈️</span>
+                                    <span>ফ্লাইট মোড</span>
+                                </div>
+                                <div class="cc-tile active" id="ccDarkTile">
+                                    <span class="cc-icon">🌙</span>
+                                    <span>ডার্ক মোড</span>
+                                </div>
+                                <div class="cc-tile" id="ccTorchTile">
+                                    <span class="cc-icon">🔦</span>
+                                    <span>টর্চলাইট</span>
+                                </div>
+                                <div class="cc-tile active" id="ccNilbusTile">
+                                    <span class="cc-icon">🚌</span>
+                                    <span>নীলবাস IPC</span>
+                                </div>
+                            </div>
+                            <div class="cc-slider-wrap">
+                                <span>☀️ উজ্জ্বলতা</span>
+                                <input type="range" min="10" max="100" value="85" class="cc-slider" id="brightnessSlider">
+                            </div>
+                            <div class="cc-slider-wrap">
+                                <span>🔊 ভলিউম</span>
+                                <input type="range" min="0" max="100" value="75" class="cc-slider" id="volumeSlider">
+                            </div>
+                        </div>
+
+                        <!-- ৩. লক স্ক্রিন ওভারলে -->
+                        <div class="os-lockscreen hidden" id="lockScreen">
+                            <div class="lock-clock-wrap">
+                                <h1 id="lockClock">12:00</h1>
+                                <p id="lockDate">বুধবার, ৭ অক্টোবর ২০২৬</p>
+                            </div>
+                            <div class="lock-notifications">
+                                <div class="lock-notif-card" onclick="unlockScreen(); launchApp('notes');">
+                                    <span class="notif-icon">📝</span>
+                                    <div class="notif-content">
+                                        <h4>নীলাং নোটবুক</h4>
+                                        <p>৪টি সক্রিয় নোট রয়েছে। খুলতে ট্যাপ করুন।</p>
+                                    </div>
+                                </div>
+                                <div class="lock-notif-card" onclick="unlockScreen(); launchApp('pos');">
+                                    <span class="notif-icon">🏪</span>
+                                    <div class="notif-content">
+                                        <h4>অনুরণ পিওএস</h4>
+                                        <p>ইনভেন্টরি সিঙ্ক সম্পূর্ণ • ৫টি পণ্য প্রস্তুত।</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="lock-swipe-hint" id="lockSwipeArea">
+                                <div class="swipe-arrow">▲</div>
+                                <span>সোয়াইপ বা টাচ করে আনলক করুন</span>
+                            </div>
+                        </div>
+
+                        <!-- ৪. হোম স্ক্রিন (App Launcher) -->
+                        <div class="os-homescreen hidden" id="homeScreen">
+                            <!-- দ্রুত নোট উইজেট -->
+                            <div class="homescreen-widget" onclick="launchApp('notes')">
+                                <div class="widget-header">
+                                    <span>📝 দ্রুত নোট উইজেট</span>
+                                    <span class="widget-time">আজ</span>
+                                </div>
+                                <div class="widget-body" id="quickWidgetNote">
+                                    <h4>স্বাগতম নীলাং নোটবুক-এ! 📌</h4>
+                                    <p>সম্পূর্ণ নীলাং ভাষা ও আলাপ ফ্রেমওয়ার্কে তৈরি নোট অ্যাপ...</p>
+                                </div>
+                            </div>
+
+                            <!-- অ্যাপ আইকন গ্রিড (৮টি পূর্ণাঙ্গ নীলাং অ্যাপ) -->
+                            <div class="app-grid">
+                                <div class="app-icon-item" onclick="launchApp('notes')">
+                                    <div class="app-icon notes-app-icon">📝</div>
+                                    <span class="app-name">নোটবুক</span>
+                                </div>
+                                <div class="app-icon-item" onclick="launchApp('calc')">
+                                    <div class="app-icon calc-app-icon">🧮</div>
+                                    <span class="app-name">ক্যালকুলেটর</span>
+                                </div>
+                                <div class="app-icon-item" onclick="launchApp('pos')">
+                                    <div class="app-icon pos-app-icon">🏪</div>
+                                    <span class="app-name">রিটেইল POS</span>
+                                </div>
+                                <div class="app-icon-item" onclick="launchApp('music')">
+                                    <div class="app-icon music-app-icon">🎵</div>
+                                    <span class="app-name">মিউজিক</span>
+                                </div>
+                                <div class="app-icon-item" onclick="launchApp('shell')">
+                                    <div class="app-icon shell-app-icon">💻</div>
+                                    <span class="app-name">টার্মিনাল</span>
+                                </div>
+                                <div class="app-icon-item" onclick="launchApp('store')">
+                                    <div class="app-icon store-app-icon">📦</div>
+                                    <span class="app-name">প্যাকেজ স্টোর</span>
+                                </div>
+                                <div class="app-icon-item" onclick="launchApp('files')">
+                                    <div class="app-icon files-app-icon">📁</div>
+                                    <span class="app-name">ফাইলস</span>
+                                </div>
+                                <div class="app-icon-item" onclick="launchApp('settings')">
+                                    <div class="app-icon settings-app-icon">⚙️</div>
+                                    <span class="app-name">সেটিংস</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- ৫. অ্যাপ ১: নীলাং নোটবুক উইন্ডো (Nilang Notes) -->
+                        <div class="app-window active-app" id="notesAppWindow">
+                            <div class="mobile-app-header">
+                                <div class="m-header-left">
+                                    <span class="m-app-logo">📝</span>
+                                    <span class="m-app-title">নীলাং নোটবুক</span>
+                                </div>
+                                <div class="m-header-right">
+                                    <button class="m-icon-btn" id="mSearchBtn" title="সার্চ">🔍</button>
+                                    <button class="m-icon-btn" id="mStatsBtn" title="পরিসংখ্যান">📊</button>
+                                    <button class="m-icon-btn" id="mNewNoteBtn" title="নতুন নোট">➕</button>
+                                </div>
+                            </div>
+
+                            <div class="m-search-bar hidden" id="mSearchBar">
+                                <input type="text" id="mSearchInput" placeholder="নোট, টাস্ক বা ট্যাগ খুঁজুন...">
+                                <button id="mCloseSearchBtn">✕</button>
+                            </div>
+
+                            <div class="category-pills-scroll" id="mCategoryPills">
+                                <button class="cat-pill active" data-cat="all">📑 সকল</button>
+                                <button class="cat-pill" data-cat="important">⭐ জরুরি</button>
+                                <button class="cat-pill" data-cat="work">💼 কাজ</button>
+                                <button class="cat-pill" data-cat="personal">👤 ব্যক্তিগত</button>
+                                <button class="cat-pill" data-cat="ideas">💡 আইডিয়া</button>
+                                <button class="cat-pill" data-cat="todo">✅ টাস্ক</button>
+                                <button class="cat-pill" data-cat="trash">🗑️ ট্র্যাশ</button>
+                            </div>
+
+                            <!-- নোট তালিকা ভিউ -->
+                            <div class="m-notes-list-view" id="mNotesListView">
+                                <div class="m-cards-container" id="mCardsContainer"></div>
+                            </div>
+
+                            <!-- নোট এডিটর ভিউ -->
+                            <div class="m-editor-view hidden" id="mEditorView">
+                                <div class="editor-sub-nav">
+                                    <button class="back-btn" id="mBackToListBtn">❮ নোট তালিকা</button>
+                                    <div class="editor-right-actions">
+                                        <button class="m-action-tag" id="mPinToggleBtn">📌</button>
+                                        <button class="m-action-tag" id="mFavToggleBtn">⭐</button>
+                                        <button class="m-action-tag delete-tag" id="mDeleteBtn">🗑️</button>
+                                    </div>
+                                </div>
+
+                                <div class="m-editor-scroll-area">
+                                    <input type="text" class="m-title-input" id="mTitleInput" placeholder="নোটের শিরোনাম...">
+                                    <div class="m-meta-bar">
+                                        <select class="m-cat-select" id="mCatSelect">
+                                            <option value="important">⭐ জরুরি</option>
+                                            <option value="work">💼 কাজ</option>
+                                            <option value="personal">👤 ব্যক্তিগত</option>
+                                            <option value="ideas">💡 আইডিয়া</option>
+                                            <option value="todo">✅ টাস্ক</option>
+                                        </select>
+                                        <input type="text" class="m-tags-input" id="mTagsInput" placeholder="#ট্যাগ (কমা দিয়ে)">
+                                    </div>
+
+                                    <div class="m-checklist-card">
+                                        <div class="m-chk-header">
+                                            <span>✅ চেকলিস্ট ও প্রোগ্রেস</span>
+                                            <span id="mChkProgress" class="m-prog-text">0/0</span>
+                                        </div>
+                                        <div class="m-chk-items" id="mChkItems"></div>
+                                        <div class="m-add-chk-row">
+                                            <input type="text" id="mNewChkInput" placeholder="+ নতুন টাস্ক লিখুন...">
+                                            <button id="mAddChkBtn">যোগ</button>
+                                        </div>
+                                    </div>
+
+                                    <div class="m-body-wrapper">
+                                        <textarea class="m-content-input" id="mContentInput" placeholder="এখানে বিস্তারিত নোট লিখুন..."></textarea>
+                                    </div>
+
+                                    <div class="m-word-counter">
+                                        <span id="mWordCount">০ শব্দ • ০ অক্ষর</span>
+                                        <span class="save-indicator" id="mSaveIndicator">✔ সংরক্ষিত</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button class="fab-btn" id="mFabNewBtn" title="নতুন নোট তৈরি">➕</button>
+                        </div>
+
+                        <!-- ৬. অ্যাপ ২: নীলাং ক্যালকুলেটর উইন্ডো (Nilang Calculator) -->
+                        <div class="app-window hidden" id="calcAppWindow">
+                            <div class="mobile-app-header">
+                                <div class="m-header-left">
+                                    <span class="m-app-logo">🧮</span>
+                                    <span class="m-app-title">নীলাং ক্যালকুলেটর</span>
+                                </div>
+                                <div class="m-header-right">
+                                    <button class="m-icon-btn" id="btnCalcHistoryToggle" title="হিস্ট্রি রিল">📜</button>
+                                </div>
+                            </div>
+                            <div class="calc-container">
+                                <div class="calc-display-area">
+                                    <div class="calc-expr" id="calcExpression"></div>
+                                    <div class="calc-result" id="calcResult">0</div>
+                                </div>
+                                <div class="calc-history-panel hidden" id="calcHistoryPanel">
+                                    <h4>📜 গণনার ইতিহাস</h4>
+                                    <div class="calc-history-list" id="calcHistoryList"></div>
+                                </div>
+                                <div class="calc-keypad-grid">
+                                    <button class="calc-key op-key" onclick="calcAction('clear')">AC</button>
+                                    <button class="calc-key op-key" onclick="calcAction('delete')">⌫</button>
+                                    <button class="calc-key op-key" onclick="calcAction('percent')">%</button>
+                                    <button class="calc-key fn-key" onclick="calcAction('divide')">÷</button>
+
+                                    <button class="calc-key" onclick="calcInput('7')">7</button>
+                                    <button class="calc-key" onclick="calcInput('8')">8</button>
+                                    <button class="calc-key" onclick="calcInput('9')">9</button>
+                                    <button class="calc-key fn-key" onclick="calcAction('multiply')">×</button>
+
+                                    <button class="calc-key" onclick="calcInput('4')">4</button>
+                                    <button class="calc-key" onclick="calcInput('5')">5</button>
+                                    <button class="calc-key" onclick="calcInput('6')">6</button>
+                                    <button class="calc-key fn-key" onclick="calcAction('subtract')">−</button>
+
+                                    <button class="calc-key" onclick="calcInput('1')">1</button>
+                                    <button class="calc-key" onclick="calcInput('2')">2</button>
+                                    <button class="calc-key" onclick="calcInput('3')">3</button>
+                                    <button class="calc-key fn-key" onclick="calcAction('add')">+</button>
+
+                                    <button class="calc-key" onclick="calcAction('plusminus')">±</button>
+                                    <button class="calc-key" onclick="calcInput('0')">0</button>
+                                    <button class="calc-key" onclick="calcInput('.')">.</button>
+                                    <button class="calc-key equals-key" onclick="calcAction('equals')">=</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- ৭. অ্যাপ ৩: অনুরণ রিটেইল পিওএস টার্মিনাল (Nilang Retail POS) -->
+                        <div class="app-window hidden" id="posAppWindow">
+                            <div class="mobile-app-header">
+                                <div class="m-header-left">
+                                    <span class="m-app-logo">🏪</span>
+                                    <span class="m-app-title">লখন ভাণ্ডার POS</span>
+                                </div>
+                                <div class="m-header-right">
+                                    <button class="m-icon-btn" id="btnPosBarcodeScan" title="বারকোড স্ক্যান">📸</button>
+                                    <button class="m-icon-btn" id="btnPosCartToggle" title="শপিং কার্ট">🛒 <span class="cart-badge" id="posCartBadge">0</span></button>
+                                </div>
+                            </div>
+                            <div class="pos-container">
+                                <!-- প্রোডাক্ট গ্রিড -->
+                                <div class="pos-catalog-grid" id="posCatalogGrid"></div>
+                                <!-- বটম কার্ট বার -->
+                                <div class="pos-cart-bar">
+                                    <div class="pos-cart-info">
+                                        <span>মোট আইটেম: <strong id="posCartCount">০</strong></span>
+                                        <span class="pos-cart-price">৳ <strong id="posCartTotal">০.০০</strong></span>
+                                    </div>
+                                    <button class="pos-checkout-btn" id="btnPosCheckout">চেকআউট ও প্রিন্ট 🖨️</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- ৮. অ্যাপ ৪: নীলাং মিউজিক প্লেয়ার (Nilang Music Streamer) -->
+                        <div class="app-window hidden" id="musicAppWindow">
+                            <div class="mobile-app-header">
+                                <div class="m-header-left">
+                                    <span class="m-app-logo">🎵</span>
+                                    <span class="m-app-title">নীলাং মিউজিক</span>
+                                </div>
+                            </div>
+                            <div class="music-container">
+                                <div class="music-cover-art" id="musicCoverArt">🎵</div>
+                                <div class="music-track-info">
+                                    <h3 id="musicTrackTitle">আমার সোনার বাংলা (Lofi Instrument)</h3>
+                                    <p id="musicTrackArtist">নীলাং সিন্থেসাইজার টিম</p>
+                                </div>
+                                <canvas class="music-visualizer-canvas" id="musicVisualizer" width="300" height="60"></canvas>
+                                <div class="music-progress-wrap">
+                                    <span id="musicCurrentTime">1:12</span>
+                                    <div class="music-progress-bar"><div class="music-progress-fill" id="musicProgressFill" style="width: 35%;"></div></div>
+                                    <span id="musicTotalTime">3:42</span>
+                                </div>
+                                <div class="music-controls">
+                                    <button class="m-ctl-btn" onclick="musicPrev()">⏮</button>
+                                    <button class="m-ctl-btn play-btn" id="btnMusicPlayPause" onclick="toggleMusicPlay()">▶</button>
+                                    <button class="m-ctl-btn" onclick="musicNext()">⏭</button>
+                                </div>
+                                <div class="music-playlist-header">প্লেলিস্ট:</div>
+                                <div class="music-playlist-list" id="musicPlaylist"></div>
+                            </div>
+                        </div>
+
+                        <!-- ৯. অ্যাপ ৫: নীলাং টার্মিনাল ও REPL (Nilang Shell) -->
+                        <div class="app-window hidden" id="shellAppWindow">
+                            <div class="mobile-app-header">
+                                <div class="m-header-left">
+                                    <span class="m-app-logo">💻</span>
+                                    <span class="m-app-title">নীলাং টার্মিনাল REPL</span>
+                                </div>
+                                <div class="m-header-right">
+                                    <button class="m-icon-btn" onclick="clearShell()">🧹</button>
+                                </div>
+                            </div>
+                            <div class="shell-container">
+                                <div class="shell-output" id="shellOutput">
+                                    <div class="shell-line text-cyan">⚡ নীল ওএস (NilOS) v2.0 Interactive Terminal</div>
+                                    <div class="shell-line text-dim">NilLang Runtime Engine 1.0 (x86_64)</div>
+                                    <div class="shell-line">কমান্ড টাইপ করুন (যেমন: help, notes, pos, calc, stats)</div>
+                                </div>
+                                <div class="shell-input-row">
+                                    <span class="shell-prompt">❯</span>
+                                    <input type="text" id="shellInput" placeholder="নীলাং কোড বা কমান্ড লিখুন...">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- ১০. অ্যাপ ৬: প্যাকেজ ম্যানেজার (NilPkg Store) -->
+                        <div class="app-window hidden" id="storeAppWindow">
+                            <div class="mobile-app-header">
+                                <div class="m-header-left">
+                                    <span class="m-app-logo">📦</span>
+                                    <span class="m-app-title">প্যাকেজ স্টোর (NilPkg)</span>
+                                </div>
+                            </div>
+                            <div class="store-container">
+                                <div class="store-banner">
+                                    <h4>🛡️ Ed25519 সিকিউর বান্ডিল</h4>
+                                    <p>সরাসরি সাইন্ড .nilax অ্যাপ্লিকেশন ইন্সটল ও রান করুন।</p>
+                                </div>
+                                <div class="store-pkg-list" id="storePkgList"></div>
+                            </div>
+                        </div>
+
+                        <!-- ১১. অ্যাপ ৭: ফাইল ম্যানেজার (NilFS Files) -->
+                        <div class="app-window hidden" id="filesAppWindow">
+                            <div class="mobile-app-header">
+                                <div class="m-header-left">
+                                    <span class="m-app-logo">📁</span>
+                                    <span class="m-app-title">ফাইল ম্যানেজার (NilFS)</span>
+                                </div>
+                            </div>
+                            <div class="files-container">
+                                <div class="files-path-bar" id="filesPathBar">📂 /workspace/notes-app-nilLang</div>
+                                <div class="files-list" id="filesList"></div>
+                            </div>
+                        </div>
+
+                        <!-- ১২. অ্যাপ ৮: সিস্টেম সেটিংস (NilOS Settings) -->
+                        <div class="app-window hidden" id="settingsAppWindow">
+                            <div class="mobile-app-header">
+                                <div class="m-header-left">
+                                    <span class="m-app-logo">⚙️</span>
+                                    <span class="m-app-title">সিস্টেম সেটিংস</span>
+                                </div>
+                            </div>
+                            <div class="settings-container">
+                                <div class="settings-group">
+                                    <h4>🎨 ভিজ্যুয়াল ও থিম</h4>
+                                    <div class="settings-item">
+                                        <span>থিম প্যালেট</span>
+                                        <select id="settingsThemeSelect" class="settings-select">
+                                            <option value="theme-dark">Deep Dark</option>
+                                            <option value="theme-cyberpunk">Cyberpunk Cyan</option>
+                                            <option value="theme-emerald">Emerald Forest</option>
+                                            <option value="theme-light">Pure Clean Light</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="settings-group">
+                                    <h4>📱 ডিভাইস ও স্টোরেজ</h4>
+                                    <div class="settings-item">
+                                        <span>নীলবাস কানেকশন</span>
+                                        <strong class="text-green">সংযুক্ত (Active)</strong>
+                                    </div>
+                                    <div class="settings-item">
+                                        <span>ডেটাবেস পারসিস্টেন্স</span>
+                                        <strong>SQLite-Sync (/data/notes.json)</strong>
+                                    </div>
+                                </div>
+                                <div class="settings-group">
+                                    <h4>ℹ️ সিস্টেম সম্পর্কে</h4>
+                                    <div class="settings-item"><span>ওএস সংস্করণ:</span> <strong>NilOS 2.0.0-pro</strong></div>
+                                    <div class="settings-item"><span>কার্নেল:</span> <strong>Onuron v0.1.0-alpha</strong></div>
+                                    <div class="settings-item"><span>কম্পাইলার:</span> <strong>NilLang 1.0 (Bytecode VM)</strong></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- ১৩. মাল্টিটাস্কিং রিসেন্ট অ্যাপস ক্যারোজেল (App Switcher) -->
+                        <div class="os-app-switcher hidden" id="appSwitcher">
+                            <div class="switcher-header">
+                                <h3>🗂️ রিসেন্ট অ্যাপ্লিকেশনস</h3>
+                                <button class="switcher-close-btn" id="btnCloseSwitcher">✕</button>
+                            </div>
+                            <div class="switcher-cards-row" id="switcherCardsRow"></div>
+                        </div>
+
+                        <!-- ১৪. অন-স্ক্রিন ভার্চুয়াল টাচ কীবোর্ড -->
+                        <div class="virtual-keyboard hidden" id="virtualKeyboard">
+                            <div class="keyboard-top-bar">
+                                <div class="kb-suggestions">
+                                    <span class="kb-sug" onclick="insertText('নীলাং')">নীলাং</span>
+                                    <span class="kb-sug" onclick="insertText('নোটবুক')">নোটবুক</span>
+                                    <span class="kb-sug" onclick="insertText('অনুরণ')">অনুরণ</span>
+                                    <span class="kb-sug" onclick="insertText('টাস্ক')">টাস্ক</span>
+                                    <span class="kb-sug" onclick="insertText('পিওএস')">পিওএস</span>
+                                    <span class="kb-sug" onclick="insertText('ক্যালকুলেটর')">ক্যালকুলেটর</span>
+                                </div>
+                                <button class="kb-hide-btn" id="hideKeyboardBtn">▼</button>
+                            </div>
+                            <div class="keyboard-keys-grid">
+                                <div class="kb-row">
+                                    <button class="kb-key" onclick="insertChar('১')">১</button>
+                                    <button class="kb-key" onclick="insertChar('২')">২</button>
+                                    <button class="kb-key" onclick="insertChar('৩')">৩</button>
+                                    <button class="kb-key" onclick="insertChar('৪')">৪</button>
+                                    <button class="kb-key" onclick="insertChar('৫')">৫</button>
+                                    <button class="kb-key" onclick="insertChar('৬')">৬</button>
+                                    <button class="kb-key" onclick="insertChar('৭')">৭</button>
+                                    <button class="kb-key" onclick="insertChar('৮')">৮</button>
+                                    <button class="kb-key" onclick="insertChar('৯')">৯</button>
+                                    <button class="kb-key" onclick="insertChar('০')">০</button>
+                                </div>
+                                <div class="kb-row">
+                                    <button class="kb-key" onclick="insertChar('ক')">ক</button>
+                                    <button class="kb-key" onclick="insertChar('খ')">খ</button>
+                                    <button class="kb-key" onclick="insertChar('গ')">গ</button>
+                                    <button class="kb-key" onclick="insertChar('ঘ')">ঘ</button>
+                                    <button class="kb-key" onclick="insertChar('চ')">চ</button>
+                                    <button class="kb-key" onclick="insertChar('ছ')">ছ</button>
+                                    <button class="kb-key" onclick="insertChar('জ')">জ</button>
+                                    <button class="kb-key" onclick="insertChar('ত')">ত</button>
+                                    <button class="kb-key" onclick="insertChar('প')">প</button>
+                                    <button class="kb-key" onclick="insertChar('র')">র</button>
+                                </div>
+                                <div class="kb-row">
+                                    <button class="kb-key" onclick="insertChar('া')">া</button>
+                                    <button class="kb-key" onclick="insertChar('ি')">ি</button>
+                                    <button class="kb-key" onclick="insertChar('ী')">ী</button>
+                                    <button class="kb-key" onclick="insertChar('ু')">ু</button>
+                                    <button class="kb-key" onclick="insertChar('ে')">ে</button>
+                                    <button class="kb-key" onclick="insertChar('ো')">ো</button>
+                                    <button class="kb-key" onclick="insertChar('্')">্</button>
+                                    <button class="kb-key" onclick="insertChar('ং')">ং</button>
+                                    <button class="kb-key kb-backspace" onclick="backspaceKey()">⌫</button>
+                                </div>
+                                <div class="kb-row">
+                                    <button class="kb-key kb-space" onclick="insertChar(' ')">স্পেস (Space)</button>
+                                    <button class="kb-key kb-enter" onclick="insertChar('\n')">↵ এন্টার</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- ১৫. বটম জেসচার হোম বার -->
+                        <div class="os-gesture-bar" id="gestureBar" onclick="handleGestureHome()" title="হোম স্ক্রিনে যেতে ট্যাপ করুন, টাস্ক সুইচার খুলতে ডাবল ক্লিক করুন">
+                            <div class="home-pill"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ডানপাশে নিলস্টুডিও ডেভেলপার ডায়াগনস্টিকস ও ইন্সপেক্টর প্যানেল -->
+        <aside class="emulator-devtools" id="emulatorDevtools">
+            <div class="devtools-header">
+                <h3>🛠️ NilStudio DevTools</h3>
+                <div class="devtools-tabs">
+                    <button class="dt-tab active" data-tab="dt-bus">🚌 নীলবাস</button>
+                    <button class="dt-tab" data-tab="dt-bytecode">⚡ বাইটকোড</button>
+                    <button class="dt-tab" data-tab="dt-perf">📊 পারফ</button>
+                    <button class="dt-tab" data-tab="dt-fs">📁 ডেটা</button>
+                    <button class="dt-tab" data-tab="dt-qemu">🖥️ QEMU</button>
+                    <button class="dt-tab" data-tab="dt-ndb">🐞 ডিবাগ</button>
+                    <button class="dt-tab" data-tab="dt-plugins">🔌 প্লাগইন</button>
+                </div>
+            </div>
+
+            <!-- ট্যাব ১: নীলবাস ইভেন্ট লগার -->
+            <div class="dt-content active" id="dt-bus">
+                <div class="dt-log-toolbar">
+                    <span>📡 লাইভ IPC ইভেন্ট স্ট্রিম</span>
+                    <button class="mini-btn" onclick="clearBusLogs()">ক্লিয়ার</button>
+                </div>
+                <div class="dt-log-list" id="nilbusLogList"></div>
+            </div>
+
+            <!-- ট্যাব ২: বাইটকোড ইন্সপেক্টর -->
+            <div class="dt-content" id="dt-bytecode">
+                <div class="dt-log-toolbar">
+                    <span>⚡ Alap Virtual DOM & Bytecode</span>
+                </div>
+                <pre class="dt-code-view" id="bytecodeView">
+// NilLang Bytecode Disassembly [main.nabc]
+0000 OpConstant  0 (NotesApp)
+0003 OpSetGlobal 0
+0006 OpClosure   1 (renderUI)
+0009 OpCall      0
+0011 OpPop
+0012 OpReturn
+// Active VDOM Root: Column -> [Header, NoteList, Editor]
+// Capabilities: [Filesystem, Database, Network, Printer]
+                </pre>
+            </div>
+
+            <!-- ট্যাব ৩: পারফরম্যান্স ও এফপিএস -->
+            <div class="dt-content" id="dt-perf">
+                <div class="dt-perf-metrics">
+                    <div class="perf-metric-card">
+                        <span>ফ্রেমরেট (FPS)</span>
+                        <strong class="text-green">60.0 FPS</strong>
+                    </div>
+                    <div class="perf-metric-card">
+                        <span>রেন্ডার ল্যাটেন্সি</span>
+                        <strong class="text-cyan">0.8 ms</strong>
+                    </div>
+                    <div class="perf-metric-card">
+                        <span>হিপ মেমোরি</span>
+                        <strong>18.4 MB</strong>
+                    </div>
+                    <div class="perf-metric-card">
+                        <span>Alap নোডস</span>
+                        <strong>48 Nodes</strong>
+                    </div>
+                </div>
+                <canvas id="fpsChart" width="280" height="100" class="dt-chart-canvas"></canvas>
+            </div>
+
+            <!-- ট্যাব ৪: ডেটাবেস ও ফাইলস -->
+            <div class="dt-content" id="dt-fs">
+                <div class="dt-log-toolbar">
+                    <span>💽 notes.json লাইভ স্টেট</span>
+                    <button class="mini-btn" onclick="loadNotesData()">রিফ্রেশ</button>
+                </div>
+                <pre class="dt-json-view" id="dbJsonView">{}</pre>
+            </div>
+
+            <!-- ট্যাব ৫: QEMU হেডলেস কার্নেল ও ফ্রেমবাফার স্ক্রিন -->
+            <div class="dt-content" id="dt-qemu">
+                <div class="dt-log-toolbar">
+                    <span>🖥️ QEMU x86_64 কার্নেল ডিসপ্লে</span>
+                    <div style="display:flex; gap:4px;">
+                        <button class="mini-btn" id="btnQemuReboot" onclick="qemuControl('reboot')">🔄 রিবুট</button>
+                        <button class="mini-btn" id="btnQemuPause" onclick="qemuControl('pause')">⏸️ পজ</button>
+                        <button class="mini-btn" id="btnQemuResume" onclick="qemuControl('resume')">▶️ রিজিউম</button>
+                    </div>
+                </div>
+                <div class="qemu-canvas-container">
+                    <canvas id="qemuFramebufferCanvas" width="300" height="180" class="qemu-fb-canvas"></canvas>
+                    <div class="qemu-overlay-badge" id="qemuStateBadge">🟢 RUNNING (60 FPS)</div>
+                </div>
+                <div class="qemu-input-bar">
+                    <input type="text" id="qemuKeyInput" placeholder="কার্নেলে কীস্ট্রোক পাঠান..." onkeydown="if(event.key==='Enter') sendQemuKey()">
+                    <button class="mini-btn" onclick="sendQemuKey()">পাঠান</button>
+                </div>
+                <div class="qemu-reg-table" id="qemuRegistersTable">
+                    <div class="reg-title">⚙️ CPU রেজিস্টারস (x86_64)</div>
+                    <div class="reg-grid" id="qemuRegGrid">
+                        <!-- Registers populated dynamically -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- ট্যাব ৬: NDB রিমোট ডিবাগার ও Nil-LSP -->
+            <div class="dt-content" id="dt-ndb">
+                <div class="dt-log-toolbar">
+                    <span>🐞 NDB রিমোট ডিবাগার</span>
+                    <div style="display:flex; gap:4px;">
+                        <button class="mini-btn" onclick="ndbStep('step_into')" title="Step Into (F11)">⤵️ ইনটু</button>
+                        <button class="mini-btn" onclick="ndbStep('step_over')" title="Step Over (F10)">↷ ওভার</button>
+                        <button class="mini-btn" onclick="ndbStep('continue')" title="Continue (F5)">▶️ রান</button>
+                        <button class="mini-btn" onclick="ndbStep('restart')" title="Restart">⚡ রিস্টার্ট</button>
+                    </div>
+                </div>
+
+                <div class="ndb-location-banner" id="ndbLocationBanner">
+                    📍 <strong>main.nil</strong> : লাইন <span id="ndbCurrentLine">12</span> (Paused at Breakpoint)
+                </div>
+
+                <!-- ভেরিয়েবল ও কলস্ট্যাক ভিউ -->
+                <div class="ndb-section">
+                    <div class="ndb-sec-title">🔍 ভেরিয়েবল স্কোপ (Variables Watch)</div>
+                    <div class="ndb-var-list" id="ndbVarList"></div>
+                </div>
+
+                <div class="ndb-section">
+                    <div class="ndb-sec-title">📚 কল স্ট্যাক (Call Stack)</div>
+                    <div class="ndb-stack-list" id="ndbStackList"></div>
+                </div>
+
+                <!-- Nil-LSP টেস্ট এরিয়া -->
+                <div class="ndb-section">
+                    <div class="ndb-sec-title">⚡ Nil-LSP কোড অ্যানালাইজার</div>
+                    <textarea class="lsp-test-input" id="lspTestInput" rows="3" placeholder="নীলাং কোড লিখুন..."></textarea>
+                    <div style="display:flex; justify-content:space-between; margin-top:4px;">
+                        <button class="mini-btn" onclick="analyzeLspCode()">সিনট্যাক্স যাচাই 🔍</button>
+                        <span id="lspDiagResult" style="font-size:10px; color:#10B981;">০ এরর</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ট্যাব ৭: এক্সটেনশন প্লাগইন স্টোর (VSCode & Android Studio) -->
+            <div class="dt-content" id="dt-plugins">
+                <div class="dt-log-toolbar">
+                    <span>🔌 IDE এক্সটেনশন প্লাগইন সেন্টার</span>
+                </div>
+                <div class="plugins-list-wrap" id="pluginsListWrap">
+                    <!-- পপুলেটেড বাই ডিভাইস জেএস -->
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <!-- নোট পরিসংখ্যান মোডাল -->
+    <div class="modal-backdrop hidden" id="statsModal">
+        <div class="stats-dialog">
+            <div class="dialog-header">
+                <h3>📊 নীলাং নোটবুক পরিসংখ্যান</h3>
+                <button class="close-btn" id="closeStatsBtn">✕</button>
+            </div>
+            <div class="dialog-body" id="statsModalBody"></div>
+        </div>
+    </div>
+
+    <script src="device.js"></script>
+</body>
+</html>

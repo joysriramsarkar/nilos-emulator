@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>নীলাং নোটবুক (Nilang Notes) — আধুনিক নোট অ্যাপ</title>
+    <meta name="description" content="নীলাং (NilLang) ভাষায় তৈরি সম্পূর্ণ আধুনিক ও দ্রুতগতির নোটবুক অ্যাপ্লিকেশন — QEMU ও Onuron সাপোর্ট সহ">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="theme-dark">
+    <div class="app-layout">
+        <!-- ১. টপ হেডার বার -->
+        <header class="app-header">
+            <div class="header-brand">
+                <div class="logo-icon">📝</div>
+                <div class="brand-text">
+                    <h1>নীলাং নোটবুক <span class="version-tag">v1.0 • Nilang</span></h1>
+                    <p class="tagline">মডার্ন রিচ টেক্সট, চেকলিস্ট ও QEMU ভার্চুয়াল ইঞ্জিন</p>
+                </div>
+            </div>
+
+            <div class="search-bar-wrapper">
+                <span class="search-icon">🔍</span>
+                <input type="text" id="searchInput" placeholder="নোট, টাস্ক বা ট্যাগ খুঁজুন... (Ctrl + K)" autocomplete="off">
+                <button id="clearSearchBtn" class="clear-search hidden">✕</button>
+            </div>
+
+            <div class="header-actions">
+                <a href="device.html" class="btn btn-qemu" title="নীল ওএস আসল টাচস্ক্রিন ডিভাইসে কাজ করুন" style="text-decoration: none;">
+                    <span class="pulse-dot"></span>
+                    <span class="btn-icon">📱</span>
+                    <span>নীল ওএস টাচ ডিভাইস</span>
+                </a>
+                <button id="qemuLaunchBtn" class="btn btn-secondary" title="QEMU এমুলেটরে ভার্চুয়াল ওএস টেস্ট করুন">
+                    <span class="btn-icon">🖥️</span>
+                    <span>QEMU কনসোল</span>
+                </button>
+                <button id="statsModalBtn" class="btn btn-secondary" title="পরিসংখ্যান দেখুন">
+                    <span>📊</span>
+                    <span>অ্যানালিটিক্স</span>
+                </button>
+                <div class="theme-picker-wrapper">
+                    <select id="themeSelector" class="theme-select" title="থিম পরিবর্তন করুন">
+                        <option value="theme-dark">🌌 ডিপ নাইট (Dark)</option>
+                        <option value="theme-cyber">⚡ সাইবার পাঙ্ক (Cyber)</option>
+                        <option value="theme-emerald">🌿 সবুজ প্রকৃতি (Emerald)</option>
+                        <option value="theme-bangla">🇧🇩 লাল-সবুজ ঐতিহ্য (Bangla)</option>
+                        <option value="theme-light">☀️ ক্লিন লাইট (Light)</option>
+                    </select>
+                </div>
+                <button id="newNoteHeaderBtn" class="btn btn-primary">
+                    <span>+</span>
+                    <span>নতুন নোট</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- ২. মূল ৩-কলাম ওয়ার্কস্পেস -->
+        <main class="main-content">
+            <!-- বাম সাইডবার (Folders & Categories) -->
+            <aside class="sidebar">
+                <div class="sidebar-section">
+                    <h3 class="sidebar-title">ফোল্ডার ও ক্যাটাগরি</h3>
+                    <ul class="nav-list" id="categoryNav">
+                        <li class="nav-item active" data-category="all">
+                            <span class="nav-icon">📑</span>
+                            <span class="nav-label">সকল নোট</span>
+                            <span class="nav-count" id="count-all">0</span>
+                        </li>
+                        <li class="nav-item" data-category="important">
+                            <span class="nav-icon">⭐</span>
+                            <span class="nav-label">জরুরি / পিন্ড</span>
+                            <span class="nav-count" id="count-important">0</span>
+                        </li>
+                        <li class="nav-item" data-category="work">
+                            <span class="nav-icon">💼</span>
+                            <span class="nav-label">কাজের নোট</span>
+                            <span class="nav-count" id="count-work">0</span>
+                        </li>
+                        <li class="nav-item" data-category="personal">
+                            <span class="nav-icon">👤</span>
+                            <span class="nav-label">ব্যক্তিগত</span>
+                            <span class="nav-count" id="count-personal">0</span>
+                        </li>
+                        <li class="nav-item" data-category="ideas">
+                            <span class="nav-icon">💡</span>
+                            <span class="nav-label">আইডিয়া ও পরিকল্পনা</span>
+                            <span class="nav-count" id="count-ideas">0</span>
+                        </li>
+                        <li class="nav-item" data-category="study">
+                            <span class="nav-icon">📚</span>
+                            <span class="nav-label">শিক্ষা ও রিসার্চ</span>
+                            <span class="nav-count" id="count-study">0</span>
+                        </li>
+                        <li class="nav-item" data-category="todo">
+                            <span class="nav-icon">✅</span>
+                            <span class="nav-label">চেকলিস্ট ও টাস্ক</span>
+                            <span class="nav-count" id="count-todo">0</span>
+                        </li>
+                        <li class="nav-divider"></li>
+                        <li class="nav-item" data-category="archive">
+                            <span class="nav-icon">📦</span>
+                            <span class="nav-label">আর্কাইভ</span>
+                            <span class="nav-count" id="count-archive">0</span>
+                        </li>
+                        <li class="nav-item" data-category="trash">
+                            <span class="nav-icon">🗑️</span>
+                            <span class="nav-label">ট্র্যাশ / মুছে ফেলা</span>
+                            <span class="nav-count" id="count-trash">0</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- ট্যাগসমূহ -->
+                <div class="sidebar-section">
+                    <h3 class="sidebar-title">ট্যাগসমূহ (Tags)</h3>
+                    <div class="tag-cloud" id="tagCloud">
+                        <!-- ডাইনামিক ট্যাগ -->
+                    </div>
+                </div>
+
+                <!-- নীলাং সিস্টেম স্ট্যাটাস ব্যাজ -->
+                <div class="system-status-card">
+                    <div class="status-header">
+                        <span class="status-indicator"></span>
+                        <span class="status-text">Nilang Runtime 0.1</span>
+                    </div>
+                    <div class="status-meta">
+                        <span>Onuron Ready • QEMU x86_64</span>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- মধ্যম কলাম: নোটের কার্ড তালিকা -->
+            <section class="notes-list-column">
+                <div class="notes-list-header">
+                    <div class="list-title-wrap">
+                        <h2 id="currentCategoryTitle">সকল নোট</h2>
+                        <span id="categoryNoteCountBadge" class="badge">4 টি নোট</span>
+                    </div>
+                    <div class="list-controls">
+                        <button id="viewGridBtn" class="view-btn active" title="গ্রিড ভিউ">⊞</button>
+                        <button id="viewListBtn" class="view-btn" title="লিস্ট ভিউ">☰</button>
+                    </div>
+                </div>
+
+                <div class="notes-cards-container" id="notesList">
+                    <!-- ডাইনামিক কার্ড রেন্ডার হবে -->
+                </div>
+            </section>
+
+            <!-- ডান কলাম: লাইভ নোট এডিটর ও প্রিভিউয়ার -->
+            <section class="editor-column">
+                <div class="editor-container" id="editorContainer">
+                    <div class="editor-top-bar">
+                        <div class="editor-meta-controls">
+                            <!-- ক্যাটাগরি ড্রপডাউন -->
+                            <div class="meta-group">
+                                <label for="noteCategorySelect">📁 ক্যাটাগরি:</label>
+                                <select id="noteCategorySelect" class="meta-select">
+                                    <option value="important">⭐ জরুরি (Important)</option>
+                                    <option value="work">💼 কাজ (Work)</option>
+                                    <option value="personal">👤 ব্যক্তিগত (Personal)</option>
+                                    <option value="ideas">💡 আইডিয়া (Ideas)</option>
+                                    <option value="study">📚 শিক্ষা (Study)</option>
+                                    <option value="todo">✅ চেকলিস্ট (To-Do)</option>
+                                </select>
+                            </div>
+
+                            <!-- কালার সিলেক্টর -->
+                            <div class="meta-group color-pick-group">
+                                <label>🎨 রঙ:</label>
+                                <div class="color-options" id="colorPicker">
+                                    <span class="color-dot active" data-color="indigo" style="background: #6366F1;"></span>
+                                    <span class="color-dot" data-color="emerald" style="background: #10B981;"></span>
+                                    <span class="color-dot" data-color="amber" style="background: #F59E0B;"></span>
+                                    <span class="color-dot" data-color="rose" style="background: #F43F5E;"></span>
+                                    <span class="color-dot" data-color="violet" style="background: #8B5CF6;"></span>
+                                    <span class="color-dot" data-color="cyan" style="background: #06B6D4;"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- অ্যাকশন বাটনসমূহ -->
+                        <div class="editor-action-buttons">
+                            <button id="pinNoteBtn" class="icon-btn" title="পিন করুন">📌</button>
+                            <button id="favNoteBtn" class="icon-btn" title="পছন্দ / ফেভারিট">⭐</button>
+                            <button id="exportMdBtn" class="icon-btn" title="মার্কডাউন এক্সপোর্ট">📥 .md</button>
+                            <button id="deleteNoteBtn" class="icon-btn delete-btn" title="মুছে ফেলুন">🗑️</button>
+                        </div>
+                    </div>
+
+                    <!-- শিরোনাম ইনপুট -->
+                    <div class="editor-title-wrap">
+                        <input type="text" id="noteTitleInput" placeholder="নোটের শিরোনাম লিখুন..." class="note-title-input">
+                    </div>
+
+                    <!-- ট্যাগ ইনপুট -->
+                    <div class="editor-tags-wrap">
+                        <span class="tag-icon">🏷️</span>
+                        <input type="text" id="noteTagsInput" placeholder="ট্যাগ যোগ করুন (কমা দিয়ে আলাদা করুন, যেমন: মিটিং, আইডিয়া, প্রজেক্ট)" class="note-tags-input">
+                    </div>
+
+                    <!-- চেকলিস্ট / টু-ডু সেকশন -->
+                    <div class="checklist-section">
+                        <div class="checklist-header">
+                            <div class="checklist-title">
+                                <span>✅ চেকলিস্ট ও টাস্কসমূহ</span>
+                                <span id="checklistProgressText" class="checklist-prog-badge">0/0 (0%)</span>
+                            </div>
+                            <div class="checklist-progress-bar-bg">
+                                <div id="checklistProgressBar" class="checklist-progress-bar-fill" style="width: 0%;"></div>
+                            </div>
+                        </div>
+                        <div class="checklist-items" id="checklistItems">
+                            <!-- ডাইনামিক চেকলিস্ট আইটেম -->
+                        </div>
+                        <div class="add-check-wrap">
+                            <input type="text" id="newCheckInput" placeholder="+ নতুন টাস্ক যোগ করুন এবং এন্টার চাপুন..." class="new-check-input">
+                            <button id="addCheckBtn" class="btn btn-sm btn-secondary">টাস্ক যোগ</button>
+                        </div>
+                    </div>
+
+                    <!-- কনটেন্ট ও মার্কডাউন এডিটর -->
+                    <div class="editor-body-wrap">
+                        <div class="editor-tabs">
+                            <button id="tabWriteBtn" class="tab-btn active">✍️ লিখুন (Editor)</button>
+                            <button id="tabPreviewBtn" class="tab-btn">👁️ লাইভ প্রিভিউ (Markdown)</button>
+                            <button id="tabSplitBtn" class="tab-btn">◫ পাশাপাশি (Split)</button>
+                        </div>
+
+                        <div class="editor-panes-wrapper" id="panesWrapper">
+                            <div class="pane pane-write" id="writePane">
+                                <textarea id="noteContentInput" placeholder="এখানে আপনার নোট বা বিস্তারিত তথ্য লিখুন (মার্কডাউন ফরম্যাটিং সমর্থিত: **বোল্ড**, *ইটালিক*, # হেডিং, - লিস্ট, `কোড`)..."></textarea>
+                            </div>
+                            <div class="pane pane-preview hidden" id="previewPane">
+                                <div class="markdown-body" id="markdownPreview"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- নিচের স্ট্যাটাস বার -->
+                    <div class="editor-footer">
+                        <div class="footer-left">
+                            <span id="wordCountBadge">০ শব্দ</span>
+                            <span class="dot-separator">•</span>
+                            <span id="charCountBadge">০ অক্ষর</span>
+                            <span class="dot-separator">•</span>
+                            <span id="readingTimeBadge">পড়ার সময়: < ১ মিনিট</span>
+                        </div>
+                        <div class="footer-right">
+                            <span id="saveStatus" class="save-status">✔ সংরক্ষিত (Saved)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- কোনো নোট সিলেক্ট না থাকলে খালি অবস্থা -->
+                <div class="empty-state hidden" id="emptyState">
+                    <div class="empty-icon">📝</div>
+                    <h2>কোনো নোট নির্বাচন করা নেই</h2>
+                    <p>বাম পাশ থেকে একটি নোট নির্বাচন করুন অথবা নতুন নোট তৈরি করতে নীচের বাটনে ক্লিক করুন।</p>
+                    <button id="newNoteEmptyBtn" class="btn btn-primary">+ নতুন নোট তৈরি করুন</button>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- ৩. স্ট্যাটস ও অ্যানালিটিক্স মোডাল -->
+    <div class="modal-overlay hidden" id="statsModal">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h2>📊 নোটবুক অ্যানালিটিক্স ও পরিসংখ্যান</h2>
+                <button class="modal-close-btn" id="closeStatsModal">✕</button>
+            </div>
+            <div class="modal-body" id="statsModalBody">
+                <!-- ডাইনামিক অ্যানালিটিক্স গ্রিড -->
+            </div>
+        </div>
+    </div>
+
+    <!-- ৪. QEMU এমুলেটর ডায়ালগ মোডাল -->
+    <div class="modal-overlay hidden" id="qemuModal">
+        <div class="modal-card qemu-modal-card">
+            <div class="modal-header">
+                <div class="qemu-header-title">
+                    <span class="pulse-dot"></span>
+                    <h2>🖥️ QEMU ভার্চুয়াল মেশিন এমুলেটর</h2>
+                </div>
+                <button class="modal-close-btn" id="closeQemuModal">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="qemu-info-banner">
+                    <p>উইন্ডোজ ল্যাপটপে <strong>qemu-system-x86_64</strong> দিয়ে নীলাং নোট অ্যাপ এবং অনুরণ ওএস কার্নেল টেস্ট করা হচ্ছে।</p>
+                </div>
+
+                <div class="qemu-console" id="qemuConsole">
+                    <div class="console-line">[INIT] QEMU x86_64 Subsystem Loaded</div>
+                    <div class="console-line">[BOOT] Onuron Microkernel Image: qemu/notes-os.img</div>
+                    <div class="console-line">[NILANG] Running: nil run src/main.nil</div>
+                    <div class="console-line">[STATUS] Virtual Display Engine Active (RAM: 512MB)</div>
+                </div>
+
+                <div class="qemu-actions-bar">
+                    <button id="startQemuProcessBtn" class="btn btn-qemu-run">
+                        <span>▶</span>
+                        <span>উইন্ডো সহ QEMU চালু করুন (GUI Window)</span>
+                    </button>
+                    <button id="runNilangDirectBtn" class="btn btn-secondary">
+                        <span>⚡</span>
+                        <span>নীলাং ইন্টারপ্রেটার টেস্ট</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
