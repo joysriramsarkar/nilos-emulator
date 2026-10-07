@@ -48,6 +48,13 @@ func main() {
 	mux.HandleFunc("/api/qemu/status", handleQEMUStatus)
 	mux.HandleFunc("/api/qemu/control", handleQEMUControl)
 	mux.HandleFunc("/api/qemu/framebuffer", handleQEMUFramebuffer)
+
+	// ─── 4. NilLang Real App Execution & Compiler Bridge ───────────────
+	mux.HandleFunc("/api/nilang/apps", handleNilangApps)
+	mux.HandleFunc("/api/nilang/file/read", handleNilangReadFile)
+	mux.HandleFunc("/api/nilang/file/save", handleNilangSaveFile)
+	mux.HandleFunc("/api/nilang/execute", handleNilangExecute)
+	mux.HandleFunc("/api/nilang/hir", handleNilangHIR)
 	mux.HandleFunc("/api/nilang/run", handleRunNilang)
 
 	// ─── 4. Nil-LSP (Language Server Protocol) Routes ──────────────────

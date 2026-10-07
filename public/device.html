@@ -26,8 +26,24 @@
                 <button class="profile-tab" data-profile="pos" title="রিটেইল টার্মিনাল মোড (With Thermal Printer)">🏪 NilPOS</button>
                 <button class="profile-tab" data-profile="desktop" title="ডেস্কটপ উইন্ডো মোড">🖥️ Desktop</button>
             </div>
+            <div class="topbar-project-bar">
+                <span style="font-size:11px; color:#94A3B8;">📂 প্রজেক্ট:</span>
+                <select id="activeProjectSelect" class="topbar-select" onchange="switchNilProject(this.value)">
+                    <option value="notes-app">📝 Nilang Notes [src/main.nil]</option>
+                    <option value="pos-app">🏪 Retail POS [src/main.nil]</option>
+                    <option value="calc-app">🧮 Calculator [src/main.nil]</option>
+                    <option value="music-app">🎵 Music Streamer [src/main.nil]</option>
+                    <option value="game-app">🎮 Nilang Game [main.nil]</option>
+                </select>
+                <button class="topbar-btn btn-run-live" id="btnRunNilLive" onclick="runActiveNilProject()" title="nil.exe দিয়ে সরাসরি কোড কম্পাইল ও ডিভাইসে এক্সেকিউট করুন">
+                    <span>⚡ লাইভ রান (nil.exe)</span>
+                </button>
+            </div>
         </div>
         <div class="topbar-right">
+            <button class="topbar-btn" id="btnScreenModeToggle" onclick="toggleScreenMode()" title="GUI এবং VM টার্মিনাল মোড পরিবর্তন">
+                <span id="screenModeLabel">💻 VM রানটাইম</span>
+            </button>
             <button class="topbar-btn" id="btnDevToolsToggle" title="ডেভেলপার ডায়াগনস্টিকস প্যানেল">
                 <span>🛠️ ডেভটুলস</span>
             </button>
@@ -313,6 +329,28 @@
                                 <div class="app-icon-item" onclick="launchApp('settings')">
                                     <div class="app-icon settings-app-icon">⚙️</div>
                                     <span class="app-name">সেটিংস</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- ০. লাইভ NilLang VM রানটাইম কনসোল স্ক্রিন (Live Interactive Terminal Screen) -->
+                        <div class="app-window hidden" id="liveVMConsoleWindow">
+                            <div class="mobile-app-header">
+                                <div class="m-header-left">
+                                    <span class="m-app-logo">⚡</span>
+                                    <span class="m-app-title" id="vmTitleLabel">NilLang VM Runtime</span>
+                                </div>
+                                <div class="m-header-right">
+                                    <button class="m-icon-btn" onclick="runActiveNilProject()" title="রিলোড">🔄</button>
+                                    <button class="m-icon-btn" onclick="toggleScreenMode()" title="GUI মোডে ফিরুন">📱 GUI</button>
+                                </div>
+                            </div>
+                            <div class="vm-terminal-container">
+                                <pre class="vm-terminal-screen" id="vmTerminalScreen">Nilang Virtual Machine v0.1.0 Ready. Press '⚡ লাইভ রান (nil.exe)' to execute code on virtual device.</pre>
+                                <div class="vm-terminal-input-bar">
+                                    <span class="vm-prompt">❯</span>
+                                    <input type="text" id="vmTerminalInput" placeholder="ইনপুট কমান্ড (যেমন: 1, n, e, q)..." onkeydown="if(event.key==='Enter') sendVMInput()">
+                                    <button class="vm-send-btn" onclick="sendVMInput()">পাঠান</button>
                                 </div>
                             </div>
                         </div>
@@ -681,13 +719,34 @@
             <div class="devtools-header">
                 <h3>🛠️ NilStudio DevTools</h3>
                 <div class="devtools-tabs">
-                    <button class="dt-tab active" data-tab="dt-bus">🚌 নীলবাস</button>
-                    <button class="dt-tab" data-tab="dt-bytecode">⚡ বাইটকোড</button>
+                    <button class="dt-tab active" data-tab="dt-editor">💻 কোড এডিটর</button>
+                    <button class="dt-tab" data-tab="dt-bus">🚌 নীলবাস</button>
+                    <button class="dt-tab" data-tab="dt-bytecode">⚡ HIR/বাইটকোড</button>
                     <button class="dt-tab" data-tab="dt-perf">📊 পারফ</button>
-                    <button class="dt-tab" data-tab="dt-fs">📁 ডেটা</button>
                     <button class="dt-tab" data-tab="dt-qemu">🖥️ QEMU</button>
                     <button class="dt-tab" data-tab="dt-ndb">🐞 ডিবাগ</button>
                     <button class="dt-tab" data-tab="dt-plugins">🔌 প্লাগইন</button>
+                </div>
+            </div>
+
+            <!-- ট্যাব ০: লাইভ NilLang সোর্স কোড এডিটর ও হট রিলোড -->
+            <div class="dt-content active" id="dt-editor">
+                <div class="dt-log-toolbar">
+                    <span id="editorFileTitle">📝 src/main.nil</span>
+                    <div style="display:flex; gap:4px;">
+                        <button class="mini-btn" onclick="saveAndHotReload()" title="সেভ করুন ও ডিভাইসে হট-রিলোড চালান">⚡ সেভ ও রান</button>
+                        <button class="mini-btn" onclick="fetchHIRForEditor()" title="High-Level Intermediate Representation দেখুন">🔍 HIR</button>
+                    </div>
+                </div>
+                <div class="code-editor-wrapper">
+                    <textarea class="nil-source-editor" id="nilSourceEditor" spellcheck="false" placeholder="নীলাং কোড লোড হচ্ছে..."></textarea>
+                </div>
+                <div class="compiler-console-panel">
+                    <div class="console-header">
+                        <span>⚡ nil.exe কম্পাইলার আউটপুট</span>
+                        <span id="compilerExecTime" style="color:#10B981; font-size:9.5px;">Ready</span>
+                    </div>
+                    <pre class="console-output" id="compilerConsoleOutput">Nilang Compiler v0.1.0 Ready. Select an app and click '⚡ লাইভ রান (nil.exe)' to execute directly on virtual device.</pre>
                 </div>
             </div>
 

@@ -1997,6 +1997,165 @@ body {
 
 .plugin-btn:hover { opacity: 0.9; }
 
+/* ─── টপবার প্রজেক্ট সিলেক্টর ও লাইভ রান বাটন ────────────────────── */
+.topbar-project-bar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: 12px;
+}
+
+.topbar-select {
+    background: rgba(15, 23, 42, 0.85);
+    border: 1px solid var(--border-subtle);
+    color: #F8FAFC;
+    font-family: var(--font-bangla);
+    font-size: 11.5px;
+    padding: 5px 8px;
+    border-radius: 8px;
+    cursor: pointer;
+    outline: none;
+}
+
+.topbar-select option {
+    background: #0F172A;
+    color: #F8FAFC;
+}
+
+.btn-run-live {
+    background: linear-gradient(135deg, #10B981, #059669) !important;
+    border: none !important;
+    color: white !important;
+    font-weight: 700;
+    box-shadow: 0 0 12px rgba(16, 185, 129, 0.4);
+    animation: pulseGlow 2.5s infinite;
+}
+
+@keyframes pulseGlow {
+    0%, 100% { box-shadow: 0 0 8px rgba(16, 185, 129, 0.3); }
+    50% { box-shadow: 0 0 16px rgba(16, 185, 129, 0.7); }
+}
+
+/* ─── লাইভ সোর্স কোড এডিটর প্যানেল (NilLang Studio Editor) ────────── */
+.code-editor-wrapper {
+    flex: 1;
+    display: flex;
+    margin-bottom: 8px;
+}
+
+.nil-source-editor {
+    width: 100%;
+    height: 380px;
+    background: #05070E;
+    border: 1px solid var(--border-subtle);
+    color: #38BDF8;
+    font-family: "JetBrains Mono", var(--font-mono);
+    font-size: 11px;
+    line-height: 1.5;
+    padding: 10px;
+    border-radius: 8px;
+    resize: none;
+    box-sizing: border-box;
+    white-space: pre;
+    outline: none;
+}
+
+.nil-source-editor:focus {
+    border-color: var(--primary-cyan);
+}
+
+.compiler-console-panel {
+    background: #000000;
+    border: 1px solid var(--border-subtle);
+    border-radius: 8px;
+    padding: 8px 10px;
+    display: flex;
+    flex-direction: column;
+    max-height: 200px;
+}
+
+.console-header {
+    display: flex;
+    justify-content: space-between;
+    font-size: 10.5px;
+    color: var(--primary-cyan);
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.console-output {
+    font-family: "JetBrains Mono", var(--font-mono);
+    font-size: 10px;
+    color: #94A3B8;
+    margin: 0;
+    overflow-y: auto;
+    max-height: 160px;
+    white-space: pre-wrap;
+    line-height: 1.4;
+}
+
+/* ─── লাইভ NilLang VM ডিভাইস টার্মিনাল কনসোল ─────────────────────── */
+.vm-terminal-container {
+    flex: 1;
+    background: #05070E;
+    display: flex;
+    flex-direction: column;
+    padding: 10px;
+    overflow: hidden;
+}
+
+.vm-terminal-screen {
+    flex: 1;
+    background: #000000;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    padding: 10px;
+    color: #38BDF8;
+    font-family: "JetBrains Mono", var(--font-mono);
+    font-size: 10.5px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    line-height: 1.45;
+    margin: 0 0 8px 0;
+}
+
+.vm-terminal-input-bar {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}
+
+.vm-prompt {
+    color: #10B981;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-weight: bold;
+}
+
+.vm-terminal-input-bar input {
+    flex: 1;
+    background: rgba(30, 41, 59, 0.8);
+    border: 1px solid var(--border-subtle);
+    color: white;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    padding: 6px 10px;
+    border-radius: 6px;
+    outline: none;
+}
+
+.vm-send-btn {
+    background: var(--primary-indigo);
+    border: none;
+    color: white;
+    font-family: var(--font-bangla);
+    font-size: 11px;
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+}
+
 /* ─── মোডাল ও ইউটিলিটি ────────────────────────────────────────────── */
 .modal-backdrop {
     position: fixed;

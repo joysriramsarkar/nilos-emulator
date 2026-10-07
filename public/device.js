@@ -55,6 +55,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initQEMUFramebuffer();
     initNDBDebugger();
     loadExtensionsList();
+    initProjectRunner();
 
     // ডেটা লোডিং
     loadNotesData();
@@ -1562,4 +1563,185 @@ function toBengaliNum(num) {
 function escapeHtml(str) {
     if (!str) return '';
     return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+// ─── ১৯. আসল NilLang প্রোজেক্ট রানার, কোড এডিটর ও VM স্ক্রিন ─────────
+async function initProjectRunner() {
+    try {
+        const res = await fetch('/api/nilang/apps');
+        if (res.ok) {
+            osState.discoveredApps = await res.json();
+            const sel = document.getElementById('activeProjectSelect');
+            if (sel && osState.discoveredApps.length > 0) {
+                sel.innerHTML = '';
+                osState.discoveredApps.forEach(app => {
+                    const opt = document.createElement('option');
+                    opt.value = app.id;
+                    opt.textContent = `${app.icon} ${app.name} [${app.mainNilFile}]`;
+                    sel.appendChild(opt);
+                });
+            }
+        }
+    } catch (e) {}
+
+    // Load initial source code for notes app
+    loadProjectFile('notes-app');
+}
+
+async function loadProjectFile(appId) {
+    let mainPath = '../notes-app-nilLang/src/main.nil';
+    const app = (osState.discoveredApps || []).find(a => a.id === appId);
+    if (app && app.mainNilFile) {
+        mainPath = app.mainNilFile;
+    } else if (appId === 'pos-app') {
+        mainPath = '../pos-app-nilLang/src/main.nil';
+    } else if (appId === 'calc-app') {
+        mainPath = '../calculator-nilLang/src/main.nil';
+    } else if (appId === 'music-app') {
+        mainPath = '../music-streaming-nilLang/src/main.nil';
+    } else if (appId === 'game-app') {
+        mainPath = '../nilLang/my-nilang-game/main.nil';
+    }
+
+    osState.currentMainFile = mainPath;
+    const titleEl = document.getElementById('editorFileTitle');
+    if (titleEl) titleEl.textContent = `📝 ${mainPath}`;
+
+    try {
+        const res = await fetch(`/api/nilang/file/read?path=${encodeURIComponent(mainPath)}`);
+        if (res.ok) {
+            const data = await res.json();
+            const ed = document.getElementById('nilSourceEditor');
+            if (ed) ed.value = data.content;
+        }
+    } catch (e) {}
+}
+
+async function switchNilProject(appId) {
+    osState.activeProject = appId;
+    triggerIslandNotice(`📂 প্রোজেক্ট লোড: ${appId}`);
+    logNilBus('org.nilang.ProjectManager', 'SwitchedProject', { appId });
+    await loadProjectFile(appId);
+
+    // Switch device UI to match
+    if (appId === 'notes-app') launchApp('notes');
+    else if (appId === 'pos-app') launchApp('pos');
+    else if (appId === 'calc-app') launchApp('calc');
+    else if (appId === 'music-app') launchApp('music');
+
+    // Run automatically
+    runActiveNilProject();
+}
+
+async function runActiveNilProject(customInput = '') {
+    const consoleOut = document.getElementById('compilerConsoleOutput');
+    const vmScreen = document.getElementById('vmTerminalScreen');
+    const timeBadge = document.getElementById('compilerExecTime');
+
+    if (consoleOut) consoleOut.textContent = "⚡ nil.exe দিয়ে কোড কম্পাইল ও এক্সেকিউট হচ্ছে...";
+    if (vmScreen) vmScreen.textContent = "⚡ Executing on NilLang Virtual Machine...";
+
+    triggerIslandNotice("⚡ nil.exe রান হচ্ছে...");
+    logNilBus('org.nilang.Compiler', 'ExecutionStarted', { file: osState.currentMainFile });
+
+    try {
+        const res = await fetch('/api/nilang/execute', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                filePath: osState.currentMainFile,
+                input: customInput || "v\nq\n"
+            })
+        });
+
+        if (res.ok) {
+            const result = await res.json();
+            if (timeBadge) timeBadge.textContent = `${result.executionTime} (Exit: ${result.exitCode})`;
+
+            const cleanOut = result.output || result.error || "Execution completed.";
+            if (consoleOut) consoleOut.textContent = cleanOut;
+            if (vmScreen) vmScreen.textContent = cleanOut;
+
+            // Also update bytecode tab with HIR if available
+            if (result.hir) {
+                const bcView = document.getElementById('bytecodeView');
+                if (bcView) bcView.textContent = result.hir;
+            }
+
+            triggerIslandNotice(`✔ সফল রান (${result.executionTime})`);
+            logNilBus('org.nilang.VM', 'ExecutionFinished', { exitCode: result.exitCode, time: result.executionTime });
+        }
+    } catch (e) {
+        if (consoleOut) consoleOut.textContent = "Error communicating with NilLang compiler backend.";
+    }
+}
+
+async function saveAndHotReload() {
+    const ed = document.getElementById('nilSourceEditor');
+    if (!ed) return;
+
+    triggerIslandNotice("💾 কোড সংরক্ষিত হচ্ছে...");
+    try {
+        const res = await fetch('/api/nilang/file/save', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                path: osState.currentMainFile,
+                content: ed.value
+            })
+        });
+
+        if (res.ok) {
+            triggerIslandNotice("🔥 হট রিলোড সম্পূর্ণ!");
+            logNilBus('org.nilang.HotReload', 'FileModified', { path: osState.currentMainFile });
+            runActiveNilProject();
+        }
+    } catch (e) {}
+}
+
+async function fetchHIRForEditor() {
+    try {
+        const res = await fetch(`/api/nilang/hir?path=${encodeURIComponent(osState.currentMainFile)}`);
+        if (res.ok) {
+            const data = await res.json();
+            const bcView = document.getElementById('bytecodeView');
+            if (bcView && data.hir) {
+                bcView.textContent = data.hir;
+                // Switch to bytecode tab
+                document.querySelectorAll('.dt-tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.dt-content').forEach(c => c.classList.remove('active'));
+                const tab = document.querySelector('[data-tab="dt-bytecode"]');
+                if (tab) tab.classList.add('active');
+                const content = document.getElementById('dt-bytecode');
+                if (content) content.classList.add('active');
+            }
+            triggerIslandNotice("🔍 HIR ডিসঅ্যাসেম্বলি প্রস্তুত");
+        }
+    } catch (e) {}
+}
+
+function toggleScreenMode() {
+    osState.screenMode = osState.screenMode === 'gui' ? 'vm' : 'gui';
+    const vmWindow = document.getElementById('liveVMConsoleWindow');
+    const label = document.getElementById('screenModeLabel');
+
+    if (osState.screenMode === 'vm') {
+        if (label) label.textContent = '📱 Alap GUI';
+        // Hide all app windows
+        document.querySelectorAll('.app-window').forEach(w => w.classList.add('hidden'));
+        if (vmWindow) vmWindow.classList.remove('hidden');
+        runActiveNilProject();
+    } else {
+        if (label) label.textContent = '💻 VM রানটাইম';
+        if (vmWindow) vmWindow.classList.add('hidden');
+        launchApp(osState.activeApp || 'notes');
+    }
+}
+
+function sendVMInput() {
+    const inp = document.getElementById('vmTerminalInput');
+    if (!inp || !inp.value.trim()) return;
+    const cmd = inp.value.trim() + "\n";
+    inp.value = '';
+    runActiveNilProject(cmd);
 }
