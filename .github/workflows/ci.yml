@@ -1,0 +1,57 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    name: build & test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+          cache: true
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Test
+        run: go test ./...
+
+      - name: Build
+        run: |
+          go build -o bin/nilemu .
+          go build -o bin/nilosd ./cmd/nilosd
+          go build -o bin/nilctl ./cmd/nilctl
+          go build -o bin/nilsign ./cmd/nilsign
+          go build -o bin/nilsp ./cmd/nilsp
+          go build -o bin/nildap ./cmd/nildap
+          go build -o bin/nilstudio ./cmd/nilstudio
+
+  lightweight-budget:
+    name: lightweight budget
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+      - name: Build and measure
+        run: |
+          go build -ldflags "-s -w" -o bin/nilemu .
+          size=$(stat -c%s bin/nilemu)
+          echo "nilemu binary size: $size bytes"
+          # Budget: a single static binary under 30 MB.
+          if [ "$size" -gt 31457280 ]; then
+            echo "::error::binary exceeds 30MB budget"; exit 1
+          fi

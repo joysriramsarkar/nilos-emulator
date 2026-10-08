@@ -1,0 +1,7 @@
+// softbus_mesh.nil — SoftBus ডিস্ট্রিবিউটেড নোড পিং টেস্ট
+var node1 = "Desktop-Host"
+var node2 = "NilPhone-Ultra"
+var latency_ms = 4
+print("নোড সংযোগ স্থাপিত: ", node1, " <-> ", node2)
+print("নেটওয়ার্ক ল্যাটেন্সি: ", latency_ms, " ms")
+send("softbus_router", "Heartbeat Ping ACK")

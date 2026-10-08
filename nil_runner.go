@@ -282,7 +282,12 @@ func handleNilangReadFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	content, err := os.ReadFile(filePath)
+	safe, err := workspace.Check(filePath)
+	if err != nil {
+		http.Error(w, "path outside workspace", http.StatusForbidden)
+		return
+	}
+	content, err := os.ReadFile(safe)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Failed to read file: %v", err), http.StatusNotFound)
 		return
@@ -290,7 +295,7 @@ func handleNilangReadFile(w http.ResponseWriter, r *http.Request) {
 
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"success": true,
-		"path":    filePath,
+		"path":    safe,
 		"content": string(content),
 		"size":    len(content),
 	})
@@ -317,14 +322,23 @@ func handleNilangSaveFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := os.WriteFile(req.Path, []byte(req.Content), 0644); err != nil {
+	safe, err := workspace.Check(req.Path)
+	if err != nil {
+		http.Error(w, "path outside workspace", http.StatusForbidden)
+		return
+	}
+	if err := os.MkdirAll(filepath.Dir(safe), 0o755); err != nil {
+		http.Error(w, fmt.Sprintf("Failed to create directory: %v", err), http.StatusInternalServerError)
+		return
+	}
+	if err := os.WriteFile(safe, []byte(req.Content), 0644); err != nil {
 		http.Error(w, fmt.Sprintf("Failed to save file: %v", err), http.StatusInternalServerError)
 		return
 	}
 
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"success": true,
-		"path":    req.Path,
+		"path":    safe,
 		"message": "File saved successfully for hot reload.",
 	})
 }
@@ -369,4 +383,18 @@ func handleNilangHIR(w http.ResponseWriter, r *http.Request) {
 		"hir":     string(out),
 		"path":    filePath,
 	})
+}
+
+// handleRunNilang is the legacy batch-run endpoint. Prefer the live session
+// API (/api/v1) for interactive apps.
+func handleRunNilang(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	var req struct {
+		Code     string `json:"code"`
+		FilePath string `json:"filePath"`
+		Input    string `json:"input"`
+	}
+	_ = json.NewDecoder(r.Body).Decode(&req)
+	result := globalNilRunner.ExecuteNilCode(req.Code, req.FilePath, req.Input)
+	json.NewEncoder(w).Encode(result)
 }

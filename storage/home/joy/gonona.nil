@@ -1,0 +1,12 @@
+// gonona.nil — Onuron OS গণক ও ভেক্টর অপ্টিমাইজার
+var name = "অনুরণ গণক"
+var base = 15
+var multiplier = 4
+var total = base * multiplier
+print("প্রোগ্রাম নাম: ", name)
+print("মোট ফলাফল: ", total)
+for i in 1..5 {
+    var square = i * i
+    print("সংখ্যা: ", i, " -> বর্গ: ", square)
+}
+send("system_monitor", "গণনা সমাপ্ত")

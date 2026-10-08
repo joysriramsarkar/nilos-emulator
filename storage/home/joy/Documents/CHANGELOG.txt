@@ -1,0 +1,7 @@
+Onuron OS Version 1.7.0 Changelog
+==============================
+[+] Virtual Isolated Linux Filesystem (/home/joy)
+[+] VLC Media Player Integration with live audio/video
+[+] NilZar Web Browser with live HTTP parsing
+[+] Bengali Language & Bangla typography support
+[+] High-performance 5-column responsive app launcher

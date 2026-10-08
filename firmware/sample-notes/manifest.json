@@ -1,0 +1,11 @@
+{
+  "id": "org.nilang.notes",
+  "name": "নীলাং নোটবুক (sample)",
+  "version": "1.0.0",
+  "entry": "payload/index.html",
+  "icon": "payload/icon.svg",
+  "author": "Nilang Core Team",
+  "min_runtime": "1.0.0",
+  "permissions": ["filesystem", "notifications"],
+  "devices": ["nilphone-ultra", "nilpad-pro", "nilos-desktop"]
+}

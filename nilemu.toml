@@ -1,0 +1,34 @@
+# nilemu.toml — NilOS Studio Emulator configuration
+#
+# All values can be overridden by environment variables (NILEMU_ADDR,
+# NILEMU_PORT, NILEMU_DATA, NIL_BIN, NILOSD_BIN, NILEMU_TOKEN,
+# NILEMU_ALLOW_UNSIGNED, NILEMU_QEMU, NILEMU_OS_IMAGE).
+
+# Control API bind address (keep loopback for security).
+listen_addr = "127.0.0.1"
+
+[server]
+port = 8085
+
+# Persistent emulator state (devices, snapshots, logs).
+# data_dir = "~/.nilemu"
+
+# Optional path to the NilLang `nil` binary for real runtime mode.
+# nil_bin = ""
+
+# Optional runtime worker binary. Defaults to ./nilosd next to the executable.
+# nilosd_bin = ""
+
+# Allow installing unsigned .nilax bundles (developer mode).
+allow_unsigned = false
+
+# Deterministic mode (for reproducible runs and golden tests):
+# clock_iso = "2026-10-07T10:00:00+06:00"
+# clock_frozen = true
+# seed = 42
+# animations = false
+
+# Ed25519 public keys trusted to sign .nilax bundles.
+[keys]
+# Sample bundle shipped in firmware/sample-notes.nilax is signed with this key.
+dev-sample = "01aa2e9e5b466319306066d7fe23b9636450d723d93a1080340ac3cc74142ce5"

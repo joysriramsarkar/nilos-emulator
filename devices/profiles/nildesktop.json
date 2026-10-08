@@ -1,0 +1,20 @@
+{
+  "id": "nilos-desktop",
+  "display_name": "NilOS Desktop",
+  "category": "desktop",
+  "screen": {
+    "width_px": 1920,
+    "height_px": 1080,
+    "density": 1.0,
+    "refresh_hz": 60,
+    "safe_area": { "top": 0, "right": 0, "bottom": 0, "left": 0 },
+    "dynamic_island": false,
+    "notch": false,
+    "rounded_corners": 0,
+    "orientation": "landscape"
+  },
+  "input": { "touch": false, "keyboard": true, "mouse": true, "barcode_scanner": false, "thermal_printer": false, "virtual_keys": false },
+  "sensors": { "accelerometer": false, "gyroscope": false, "proximity": false, "ambient_light": false, "gps": false, "fingerprint": false },
+  "battery": { "capacity_mah": 0, "max_charge": 100, "health": 100 },
+  "features": ["floating-multi-window", "desktop-workspace", "taskbar"]
+}

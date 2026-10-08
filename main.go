@@ -11,21 +11,50 @@ import (
 	"runtime"
 	"strings"
 	"time"
+
+	"github.com/joysriramsarkar/nilos-emulator/internal/api"
+	"github.com/joysriramsarkar/nilos-emulator/internal/config"
+	"github.com/joysriramsarkar/nilos-emulator/internal/emulator"
+	"github.com/joysriramsarkar/nilos-emulator/internal/sandbox"
+	"github.com/joysriramsarkar/nilos-emulator/internal/supervisor"
 )
 
 var (
 	store     *Store
 	startTime = time.Now()
+
+	cfg      config.Config
+	devMgr   *emulator.Manager
+	sup      *supervisor.Supervisor
+	workspace *sandbox.Guard
 )
 
 func main() {
 	var err error
-	store, err = NewStore("notes.json")
+	cfg, err = config.Load()
+	if err != nil {
+		log.Fatalf("config: %v", err)
+	}
+	if err := os.MkdirAll(cfg.DataDir, 0o755); err != nil {
+		log.Fatalf("data dir: %v", err)
+	}
+
+	store, err = NewStore(filepath.Join(cfg.DataDir, "notes.json"))
 	if err != nil {
 		log.Fatalf("Failed to initialize store: %v", err)
 	}
 
-	port := 8085
+	devMgr, err = emulator.NewManager(cfg.DataDir)
+	if err != nil {
+		log.Fatalf("device manager: %v", err)
+	}
+	sup = supervisor.New(devMgr, cfg)
+	devMgr.SetLauncher(sup)
+
+	// The workspace guard restricts legacy file browsing/editing endpoints to
+	// the current directory and the emulator data directory.
+	cwd, _ := os.Getwd()
+	workspace = sandbox.NewGuard(cwd, cfg.DataDir)
 
 	mux := http.NewServeMux()
 
@@ -34,7 +63,7 @@ func main() {
 	mux.HandleFunc("/api/notes/", handleSingleNote)
 	mux.HandleFunc("/api/analytics", handleAnalytics)
 
-	// ─── 2. Emulator Subsystem API Routes ──────────────────────────────
+	// ─── 2. Emulator Subsystem API Routes (legacy, hardened) ───────────
 	mux.HandleFunc("/api/emulator/status", handleEmulatorStatus)
 	mux.HandleFunc("/api/emulator/packages", handleEmulatorPackages)
 	mux.HandleFunc("/api/emulator/terminal", handleEmulatorTerminal)
@@ -43,7 +72,7 @@ func main() {
 	mux.HandleFunc("/api/music/tracks", handleMusicTracks)
 	mux.HandleFunc("/api/files/browse", handleFilesBrowse)
 
-	// ─── 3. QEMU Kernel Bridge & Framebuffer Routes ───────────────────
+	// ─── 3. QEMU Kernel Bridge (honest status, optional system mode) ───
 	mux.HandleFunc("/api/qemu/launch", handleLaunchQEMU)
 	mux.HandleFunc("/api/qemu/status", handleQEMUStatus)
 	mux.HandleFunc("/api/qemu/control", handleQEMUControl)
@@ -57,44 +86,55 @@ func main() {
 	mux.HandleFunc("/api/nilang/hir", handleNilangHIR)
 	mux.HandleFunc("/api/nilang/run", handleRunNilang)
 
-	// ─── 4. Nil-LSP (Language Server Protocol) Routes ──────────────────
+	// ─── 5. Nil-LSP / NDB Debugger ─────────────────────────────────────
 	mux.HandleFunc("/api/lsp/analyze", handleLSPAnalyze)
 	mux.HandleFunc("/api/lsp/complete", handleLSPComplete)
 	mux.HandleFunc("/api/lsp/hover", handleLSPHover)
-
-	// ─── 5. NDB (Nil Debugger) Remote Protocol Routes ──────────────────
 	mux.HandleFunc("/api/ndb/session", handleNDBSession)
 	mux.HandleFunc("/api/ndb/step", handleNDBStep)
 	mux.HandleFunc("/api/ndb/breakpoints", handleNDBBreakpoints)
 	mux.HandleFunc("/api/ndb/eval", handleNDBEval)
 
-	// ─── 6. IDE Extensions (VSCode & Android Studio) ──────────────────
+	// ─── 6. IDE Extensions ─────────────────────────────────────────────
 	mux.HandleFunc("/api/extensions/list", handleExtensionsList)
 	mux.HandleFunc("/api/extensions/vscode/download", handleVSCodeDownload)
 	mux.HandleFunc("/api/extensions/android-studio/download", handleAndroidStudioDownload)
 
-	// ─── 4. Static Assets ─────────────────────────────────────────────
-	fs := http.FileServer(http.Dir("public"))
-	mux.Handle("/", fs)
+	// ─── 7. New NilStudio control API (devices, apps, HAL, events) ─────
+	apiSrv := api.New(cfg, devMgr, sup)
+	mux.Handle("/api/v1/", apiSrv.Handler())
 
+	// ─── 8. Static Studio frontend ─────────────────────────────────────
+	mux.Handle("/", http.FileServer(http.Dir("public")))
+
+	addr := cfg.LoopbackAddr()
 	fmt.Println("==============================================================")
-	fmt.Println("  📱 নীল ওএস ডিভাইস এমুলেটর স্টুডিও — NILOS STUDIO EMULATOR")
-	fmt.Printf("  🌐 লোকাল সার্ভার চালু হয়েছে: http://localhost:%d\n", port)
-	fmt.Printf("  📱 এমুলেটর ডিভাইস ইন্টারফেস: http://localhost:%d/device.html\n", port)
-	fmt.Println("  🖥️  QEMU x86_64 ও ভার্চুয়াল হার্ডওয়্যার: সক্রিয় (Ready)")
+	fmt.Println("  📱 NILOS STUDIO EMULATOR — Nilang App Runtime Emulator")
+	fmt.Printf("  🌐 Control API + Studio:  http://%s/\n", addr)
+	fmt.Printf("  📱 Device UI:             http://%s/device.html\n", addr)
+	fmt.Printf("  🧩 Studio shell:          http://%s/studio.html\n", addr)
+	fmt.Printf("  💾 Data dir:              %s\n", cfg.DataDir)
+	if cfg.AuthToken == "" {
+		fmt.Println("  🔓 Auth token disabled (loopback-only). Set NILEMU_TOKEN to enable.")
+	}
 	fmt.Println("==============================================================")
 
-	// Auto-open browser in non-headless run
-	if len(os.Args) > 1 && os.Args[1] == "--open" {
-		go openBrowser(fmt.Sprintf("http://localhost:%d/device.html", port))
+	if !cfg.Headless && len(os.Args) > 1 && os.Args[1] == "--open" {
+		go openBrowser(fmt.Sprintf("http://%s/studio.html", addr))
 	}
 
-	if err := http.ListenAndServe(fmt.Sprintf(":%d", port), mux); err != nil {
+	srv := &http.Server{
+		Addr:              addr,
+		Handler:           mux,
+		ReadHeaderTimeout: 10 * time.Second,
+	}
+	if err := srv.ListenAndServe(); err != nil {
 		log.Fatalf("Server error: %v", err)
 	}
 }
 
 // ─── Notes Handlers ──────────────────────────────────────────────────
+
 func handleNotes(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
@@ -133,7 +173,6 @@ func handleSingleNote(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Sub-actions: /api/notes/:id/pin, /api/notes/:id/favorite, /api/notes/:id/toggle-checklist
 	if len(parts) > 1 {
 		action := parts[1]
 		note, found := store.Get(id)
@@ -247,8 +286,7 @@ func handleAnalytics(w http.ResponseWriter, r *http.Request) {
 		if n.IsArchived {
 			archivedNotes++
 		}
-		words := len(strings.Fields(n.Content))
-		totalWords += words
+		totalWords += len(strings.Fields(n.Content))
 		totalChars += len(n.Content)
 		for _, c := range n.Checklist {
 			totalTodos++
@@ -263,7 +301,7 @@ func handleAnalytics(w http.ResponseWriter, r *http.Request) {
 		todoProgress = int(float64(completedTodos) / float64(totalTodos) * 100)
 	}
 
-	analytics := map[string]interface{}{
+	json.NewEncoder(w).Encode(map[string]interface{}{
 		"totalNotes":     totalNotes,
 		"activeNotes":    activeNotes,
 		"pinnedNotes":    pinnedNotes,
@@ -275,245 +313,150 @@ func handleAnalytics(w http.ResponseWriter, r *http.Request) {
 		"totalTodos":     totalTodos,
 		"completedTodos": completedTodos,
 		"todoProgress":   todoProgress,
-	}
-	json.NewEncoder(w).Encode(analytics)
+	})
 }
 
-// ─── Emulator API Handlers ───────────────────────────────────────────
+// ─── Emulator API Handlers (now backed by real device manager) ────────
+
 func handleEmulatorStatus(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	notes := store.GetAll()
-	activeNotes := 0
-	for _, n := range notes {
-		if !n.IsTrashed {
-			activeNotes++
-		}
-	}
-
-	uptimeSeconds := int(time.Since(startTime).Seconds())
-
+	devices := devMgr.ListDevices()
+	sessions := sup.Sessions()
 	status := map[string]interface{}{
 		"os": map[string]interface{}{
-			"name":         "NilOS (নীল ওএস)",
-			"version":      "2.0.0-pro",
-			"kernel":       "Onuron Microkernel v0.1.0-alpha",
-			"arch":         "x86_64 / arm64-hybrid",
-			"displayMode":  "Wayland 1.22 + Vulkan UI Compositor",
-			"nilbusStatus": "Online (12 active channels)",
-			"uptime":       fmt.Sprintf("%d seconds", uptimeSeconds),
+			"name":        "NilOS Lightweight Runtime",
+			"version":     "0.2.0",
+			"runtime":     "NilHost Protocol v1",
+			"mode":        "app-runtime",
+			"uptime":      fmt.Sprintf("%d seconds", int(time.Since(startTime).Seconds())),
+			"devices":     len(devices),
+			"runningApps": len(sessions),
 		},
-		"hardware": map[string]interface{}{
-			"cpu":            "Onuron NilCore x86_64 (Octa-Core @ 3.4GHz)",
-			"cpuLoadPct":     14.5,
-			"ramTotalMB":     8192,
-			"ramUsedMB":      1420,
-			"display":        `6.7" Super Retina AMOLED (120Hz Touch)`,
-			"thermalPrinter": "NilThermal 58mm Paper ESC/POS — Connected",
-			"scanner":        "EAN-13 / QR Laser Engine — Ready",
-			"battery": map[string]interface{}{
-				"level":     98,
-				"charging":  true,
-				"healthPct": 100,
-			},
-			"network": map[string]interface{}{
-				"carrier": "Onuron Net 5G",
-				"signal":  "Excellent (-65 dBm)",
-				"speed":   "1.2 Gbps",
-				"online":  true,
-			},
-		},
-		"apps": []map[string]interface{}{
-			{"id": "notes", "name": "নীলাং নোটবুক", "pkg": "org.nilang.notes", "version": "1.0.0", "state": "running", "notesCount": activeNotes},
-			{"id": "calc", "name": "ক্যালকুলেটর", "pkg": "org.nilang.calculator", "version": "1.0.0", "state": "ready"},
-			{"id": "pos", "name": "পিওএস টার্মিনাল", "pkg": "org.nilang.pos", "version": "1.0.0", "state": "ready"},
-			{"id": "music", "name": "মিউজিক প্লেয়ার", "pkg": "org.nilang.music", "version": "1.0.0", "state": "ready"},
-			{"id": "shell", "name": "নীলাং টার্মিনাল", "pkg": "org.nilang.shell", "version": "1.0.0", "state": "ready"},
-			{"id": "store", "name": "প্যাকেজ স্টোর", "pkg": "org.nilang.pkgmgr", "version": "1.0.0", "state": "ready"},
-			{"id": "files", "name": "ফাইল ম্যানেজার", "pkg": "org.nilang.nilfs", "version": "1.0.0", "state": "ready"},
-			{"id": "settings", "name": "সেটিংস", "pkg": "org.nilos.settings", "version": "2.0.0", "state": "ready"},
+		"deviceManager": map[string]interface{}{
+			"devices":  devices,
+			"sessions": sessions,
 		},
 	}
-
 	json.NewEncoder(w).Encode(status)
 }
 
 func handleEmulatorPackages(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	pkgs := []map[string]interface{}{
-		{
-			"id":          "notes-app",
-			"name":        "নীলাং নোটবুক (Nilang Notes)",
-			"version":     "1.0.0",
-			"bundle":      "notes-app-nilLang-1.0.0.nilax",
-			"size":        "40.3 KB",
-			"icon":        "📝",
-			"author":      "Joy Sriram Sarkar",
-			"permissions": []string{"Filesystem", "Database", "Network"},
-			"signed":      true,
-			"signature":   "Ed25519 (Valid: Joyshriram Sarkar)",
-			"installed":   true,
-			"description": "সম্পূর্ণ নীলাং ও আলাপ ফ্রেমওয়ার্কে তৈরি রিচ নোটবুক অ্যাপ।",
-		},
-		{
-			"id":          "pos-app",
-			"name":        "অনুরণ রিটেইল পিওএস (Retail POS)",
-			"version":     "1.0.0",
-			"bundle":      "pos-app-1.0.0.nilax",
-			"size":        "21.4 KB",
-			"icon":        "🏪",
-			"author":      "POS Developer",
-			"permissions": []string{"Filesystem", "Database", "Printer", "Scanner"},
-			"signed":      true,
-			"signature":   "Ed25519 (Valid: POS Developer)",
-			"installed":   true,
-			"description": "বারকোড সার্চ, ইনভেন্টরি, কার্ট, ভ্যাট ও থার্মাল রিসিট প্রিন্টার সহ পূর্ণাঙ্গ রিটেইল পয়েন্ট-অব-সেল।",
-		},
-		{
-			"id":          "calculator-app",
-			"name":        "মডার্ন ক্যালকুলেটর (Calculator)",
-			"version":     "1.0.0",
-			"bundle":      "calculator-1.0.0.nilax",
-			"size":        "18.2 KB",
-			"icon":        "🧮",
-			"author":      "Nilang Core Team",
-			"permissions": []string{"AlapUI"},
-			"signed":      true,
-			"signature":   "Ed25519 (Valid: System)",
-			"installed":   true,
-			"description": "বেসিক ও সায়েন্টিফিক মোড, হিস্ট্রি রিল ও মেমোরি ফাংশনযুক্ত ক্যালকুলেটর।",
-		},
-		{
-			"id":          "music-app",
-			"name":        "নীলাং মিউজিক স্ট্রিমার (Music Player)",
-			"version":     "1.0.0",
-			"bundle":      "music-streaming-1.0.0.nilax",
-			"size":        "24.8 KB",
-			"icon":        "🎵",
-			"author":      "Nilang Media Lab",
-			"permissions": []string{"Audio", "Network", "Filesystem"},
-			"signed":      true,
-			"signature":   "Ed25519 (Valid: Nilang Core)",
-			"installed":   true,
-			"description": "বাংলা গান ও অডিও স্ট্রিমিং প্লেয়ার উইথ লাইভ সাউন্ড ওয়েভফর্ম।",
-		},
+	// List installed apps across devices as the package inventory.
+	type pkg struct {
+		Device      string `json:"device"`
+		ID          string `json:"id"`
+		Name        string `json:"name"`
+		Version     string `json:"version"`
+		Signed      bool   `json:"signed"`
+		Permissions int    `json:"permissions"`
 	}
-
-	json.NewEncoder(w).Encode(pkgs)
+	var out []pkg
+	for _, d := range devMgr.ListDevices() {
+		apps, _ := devMgr.ListInstalled(d.ID)
+		for _, a := range apps {
+			out = append(out, pkg{Device: d.ID, ID: a.ID, Name: a.Name, Version: a.Version, Signed: a.Signed, Permissions: len(a.Permissions)})
+		}
+	}
+	if out == nil {
+		out = []pkg{}
+	}
+	json.NewEncoder(w).Encode(out)
 }
 
+// handleEmulatorTerminal no longer executes arbitrary host commands. It runs a
+// small virtual shell operating on the emulator's own state.
 func handleEmulatorTerminal(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
-
 	var req struct {
 		Code    string `json:"code"`
 		Command string `json:"command"`
 	}
-
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-
-	nilBin := filepath.Join("..", "nilLang", "bin", "nil.exe")
-	if _, err := os.Stat(nilBin); os.IsNotExist(err) {
-		nilBin = "nil"
-	}
-
-	// 1. Command execution (e.g. "nil --version", "nil run ...")
-	if req.Command != "" {
-		parts := strings.Fields(req.Command)
-		if len(parts) == 0 {
-			json.NewEncoder(w).Encode(map[string]interface{}{"success": true, "output": ""})
-			return
-		}
-
-		bin := parts[0]
-		args := parts[1:]
-		if bin == "nil" {
-			bin = nilBin
-		}
-
-		cmd := exec.Command(bin, args...)
-		out, err := cmd.CombinedOutput()
-		json.NewEncoder(w).Encode(map[string]interface{}{
-			"success":  err == nil,
-			"output":   string(out),
-			"exitCode": cmd.ProcessState.ExitCode(),
-		})
-		return
-	}
-
-	// 2. Direct code evaluation
-	if req.Code != "" {
-		tmpFile := filepath.Join(os.TempDir(), fmt.Sprintf("nil_eval_%d.nil", time.Now().UnixNano()))
-		if err := os.WriteFile(tmpFile, []byte(req.Code), 0644); err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		defer os.Remove(tmpFile)
-
-		cmd := exec.Command(nilBin, "run", tmpFile)
-		out, err := cmd.CombinedOutput()
-		json.NewEncoder(w).Encode(map[string]interface{}{
-			"success": err == nil,
-			"output":  string(out),
-			"error":   fmt.Sprintf("%v", err),
-		})
-		return
-	}
-
+	out := runVirtualShell(req.Command)
 	json.NewEncoder(w).Encode(map[string]interface{}{
-		"success": true,
-		"output":  "Nilang v1.0.0 Interactive REPL Ready. Type code or command.",
+		"success":  true,
+		"output":   out,
+		"exitCode": 0,
 	})
+}
+
+func runVirtualShell(cmd string) string {
+	fields := strings.Fields(strings.TrimSpace(cmd))
+	if len(fields) == 0 {
+		return "NilOS virtual shell. Try: help, devices, apps, version"
+	}
+	switch fields[0] {
+	case "help":
+		return "commands: help, version, devices, apps, sessions, tree <app>"
+	case "version":
+		return "nilemu 0.2.0 · NilHost protocol v1 · built " + runtime.Version()
+	case "devices":
+		var b strings.Builder
+		for _, d := range devMgr.ListDevices() {
+			fmt.Fprintf(&b, "%s  %s  %s  %s\n", d.ID, d.State, d.ProfileID, d.Name)
+		}
+		return b.String()
+	case "apps":
+		var b strings.Builder
+		for _, d := range devMgr.ListDevices() {
+			apps, _ := devMgr.ListInstalled(d.ID)
+			for _, a := range apps {
+				fmt.Fprintf(&b, "%s  %s  %s\n", d.ID, a.ID, a.Version)
+			}
+		}
+		return b.String()
+	case "sessions":
+		var b strings.Builder
+		for _, s := range sup.Sessions() {
+			fmt.Fprintf(&b, "%s/%s  %s  frames=%d patches=%d\n", s.DeviceID, s.AppID, s.State, s.Frames, s.Patches)
+		}
+		return b.String()
+	default:
+		return fmt.Sprintf("unknown command %q (this is a virtual shell, host commands are disabled)", fields[0])
+	}
 }
 
 func handlePOSProducts(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	products := GetDefaultPOSCatalog()
-	json.NewEncoder(w).Encode(products)
+	json.NewEncoder(w).Encode(GetDefaultPOSCatalog())
 }
 
 func handlePOSCheckout(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
-
 	var req POSCheckoutRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-
 	var subtotal float64
 	for _, item := range req.Items {
 		subtotal += item.Product.Price * float64(item.Quantity)
 	}
-
 	discount := subtotal * (req.DiscountPct / 100.0)
-	vat := (subtotal - discount) * 0.05 // 5% VAT
+	vat := (subtotal - discount) * 0.05
 	total := (subtotal - discount) + vat
 
 	now := time.Now()
-	invoiceNo := fmt.Sprintf("INV-%s-%03d", now.Format("20060102"), now.Unix()%1000)
-
 	custName := req.CustomerName
 	if custName == "" {
 		custName = "সাধারণ ক্রেতা (Walk-in Customer)"
 	}
-
 	receipt := POSReceipt{
-		InvoiceNo:     invoiceNo,
+		InvoiceNo:     fmt.Sprintf("INV-%s-%03d", now.Format("20060102"), now.Unix()%1000),
 		Date:          now.Format("02/01/2006"),
 		Time:          now.Format("03:04:05 PM"),
 		CustomerName:  custName,
@@ -527,16 +470,15 @@ func handlePOSCheckout(w http.ResponseWriter, r *http.Request) {
 		PrintedAt:     now.Unix(),
 		Cashier:       "নিলয় চৌধুরী (POS-01)",
 	}
-
 	json.NewEncoder(w).Encode(receipt)
 }
 
 func handleMusicTracks(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	tracks := GetDefaultMusicTracks()
-	json.NewEncoder(w).Encode(tracks)
+	json.NewEncoder(w).Encode(GetDefaultMusicTracks())
 }
 
+// handleFilesBrowse is restricted to the workspace (cwd + data dir).
 func handleFilesBrowse(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
@@ -544,89 +486,39 @@ func handleFilesBrowse(w http.ResponseWriter, r *http.Request) {
 	if reqPath == "" || reqPath == "/" {
 		reqPath = "."
 	}
-
-	entries, err := os.ReadDir(reqPath)
+	safe, err := workspace.Check(reqPath)
+	if err != nil {
+		http.Error(w, "path outside workspace", http.StatusForbidden)
+		return
+	}
+	entries, err := os.ReadDir(safe)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-
 	var fileList []map[string]interface{}
 	for _, e := range entries {
-		info, err := e.Info()
+		info, ierr := e.Info()
 		size := int64(0)
-		if err == nil {
+		if ierr == nil {
 			size = info.Size()
 		}
 		fileList = append(fileList, map[string]interface{}{
 			"name":  e.Name(),
 			"isDir": e.IsDir(),
 			"size":  size,
-			"path":  filepath.Join(reqPath, e.Name()),
+			"path":  filepath.Join(safe, e.Name()),
 		})
 	}
-
 	json.NewEncoder(w).Encode(map[string]interface{}{
-		"currentPath": reqPath,
+		"currentPath": safe,
 		"entries":     fileList,
-	})
-}
-
-// ─── QEMU & Nilang Legacy Handlers ────────────────────────────────────
-func handleLaunchQEMU(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-
-	qemuPath := `C:\Program Files\qemu\qemu-system-x86_64.exe`
-	bootImg := filepath.Join("..", "notes-app-nilLang", "qemu", "notes-os.img")
-
-	if _, err := os.Stat(qemuPath); os.IsNotExist(err) {
-		json.NewEncoder(w).Encode(map[string]interface{}{
-			"success": false,
-			"error":   "QEMU executable not found at: " + qemuPath,
-		})
-		return
-	}
-
-	cmd := exec.Command(qemuPath, "-name", "NilOS Studio - Onuron Virtual OS", "-drive", fmt.Sprintf("format=raw,file=%s", bootImg), "-m", "512M", "-vga", "std", "-boot", "a")
-	if err := cmd.Start(); err != nil {
-		json.NewEncoder(w).Encode(map[string]interface{}{
-			"success": false,
-			"error":   err.Error(),
-		})
-		return
-	}
-
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"success": true,
-		"message": "QEMU Virtual Machine launched successfully!",
-		"pid":     cmd.Process.Pid,
-	})
-}
-
-func handleRunNilang(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-
-	nilBin := filepath.Join("..", "nilLang", "bin", "nil.exe")
-	if _, err := os.Stat(nilBin); os.IsNotExist(err) {
-		nilBin = "nil"
-	}
-
-	srcFile := filepath.Join("..", "notes-app-nilLang", "src", "main.nil")
-	cmd := exec.Command(nilBin, "run", srcFile)
-	cmd.Stdin = strings.NewReader("v\nq\n")
-	out, err := cmd.CombinedOutput()
-
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"success": err == nil,
-		"output":  string(out),
-		"error":   fmt.Sprintf("%v", err),
 	})
 }
 
 func openBrowser(url string) {
 	var cmd string
 	var args []string
-
 	switch runtime.GOOS {
 	case "windows":
 		cmd = "rundll32"

@@ -1,0 +1,20 @@
+{
+  "id": "nilpad-pro",
+  "display_name": "NilPad Pro (11.0\")",
+  "category": "tablet",
+  "screen": {
+    "width_px": 1600,
+    "height_px": 2560,
+    "density": 2.0,
+    "refresh_hz": 120,
+    "safe_area": { "top": 24, "right": 24, "bottom": 24, "left": 24 },
+    "dynamic_island": false,
+    "notch": false,
+    "rounded_corners": 32,
+    "orientation": "portrait"
+  },
+  "input": { "touch": true, "keyboard": true, "mouse": true, "barcode_scanner": false, "thermal_printer": false, "virtual_keys": false },
+  "sensors": { "accelerometer": true, "gyroscope": true, "proximity": false, "ambient_light": true, "gps": true, "fingerprint": false },
+  "battery": { "capacity_mah": 8000, "max_charge": 100, "health": 100 },
+  "features": ["split-mode", "tablet-productivity", "external-keyboard"]
+}

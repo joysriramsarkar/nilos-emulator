@@ -1,0 +1,63 @@
+# Binaries
+/nilos-emulator
+/nilos-emulator.exe
+/nilemu
+/nilemu.exe
+/nilctl
+/nilctl.exe
+/nilosd
+/nilosd.exe
+/nilsign
+/nilsign.exe
+*.exe
+
+# Runtime data (never commit device state or user data)
+/notes.json
+/data/
+/devices/bin/
+snapshots/
+*.nilrec
+
+# Signing keys
+*.key
+dev.key
+private*.hex
+
+# Build output
+/bin/
+/dist/
+/build/
+*.log
+
+# Editor / OS
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/settings.json
+*.swp
+
+# Local planning notes
+পরিকল্পনা/
+পরিকল্পনা*.md
+পরিকল্পনা*/
+
+# Local generated build artifacts
+/bin/
+/dist/
+/build/
+/target/
+**/target/
+nilsim/target/
+*.log
+*.tmp
+*.bak
+
+# Local executables / generated binaries
+*.exe
+/nilphone.exe
+/simulator/*.exe
+/nilsim/*.exe
+
+# OpenCode (contains secret API key)
+opencode.json

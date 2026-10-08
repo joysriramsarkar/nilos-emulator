@@ -7,6 +7,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/joysriramsarkar/nilos-emulator/internal/lsp"
 )
 
 // ─── Nil-LSP Models ──────────────────────────────────────────────────
@@ -154,44 +156,9 @@ func handleLSPAnalyze(w http.ResponseWriter, r *http.Request) {
 	}
 
 	diagnostics := []LSPDiagnostic{}
-	lines := strings.Split(req.Code, "\n")
-
-	// Linter analysis for NilLang
-	openBraces := 0
-	for i, line := range lines {
-		trimmed := strings.TrimSpace(line)
-		lineNum := i + 1
-
-		openBraces += strings.Count(trimmed, "{") - strings.Count(trimmed, "}")
-
-		// Check for common NilLang syntax issues
-		if strings.HasPrefix(trimmed, "চল ") && !strings.Contains(trimmed, "=") {
-			diagnostics = append(diagnostics, LSPDiagnostic{
-				Line:     lineNum,
-				Column:   len(trimmed),
-				Severity: "warning",
-				Message:  "চল (let) স্টেটমেন্টে ইনিশিয়াল ভ্যালু দেয়া সুপারিশকৃত।",
-				Source:   "nil-lsp",
-			})
-		}
-		if strings.HasPrefix(trimmed, "ফাংশন ") && !strings.Contains(trimmed, "(") {
-			diagnostics = append(diagnostics, LSPDiagnostic{
-				Line:     lineNum,
-				Column:   len(trimmed),
-				Severity: "error",
-				Message:  "ফাংশন ডিক্লেয়ারেশনে প্যারামিটার ব্র্যাকেট () আবশ্যক।",
-				Source:   "nil-lsp",
-			})
-		}
-	}
-
-	if openBraces != 0 {
+	for _, d := range lsp.Analyze(req.Code) {
 		diagnostics = append(diagnostics, LSPDiagnostic{
-			Line:     len(lines),
-			Column:   1,
-			Severity: "error",
-			Message:  fmt.Sprintf("ব্র্যাকেট ম্যাচিং অসমাপ্ত (আনক্লোজড ব্র্যাকেট: %d)", openBraces),
-			Source:   "nil-lsp",
+			Line: d.Line, Column: d.Column, Severity: d.Severity, Message: d.Message, Source: d.Source,
 		})
 	}
 

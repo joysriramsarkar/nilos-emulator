@@ -1,0 +1,20 @@
+{
+  "id": "nilpos-terminal",
+  "display_name": "NilPOS Smart Terminal",
+  "category": "pos",
+  "screen": {
+    "width_px": 800,
+    "height_px": 1280,
+    "density": 1.5,
+    "refresh_hz": 60,
+    "safe_area": { "top": 0, "right": 0, "bottom": 0, "left": 0 },
+    "dynamic_island": false,
+    "notch": false,
+    "rounded_corners": 12,
+    "orientation": "portrait"
+  },
+  "input": { "touch": true, "keyboard": true, "mouse": false, "barcode_scanner": true, "thermal_printer": true, "virtual_keys": true },
+  "sensors": { "accelerometer": false, "gyroscope": false, "proximity": false, "ambient_light": false, "gps": false, "fingerprint": false },
+  "battery": { "capacity_mah": 3000, "max_charge": 100, "health": 100 },
+  "features": ["live-laser-barcode-scanner", "animated-thermal-receipt-printer", "retail-mode"]
+}

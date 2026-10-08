@@ -1,0 +1,20 @@
+{
+  "id": "nilphone-ultra",
+  "display_name": "NilPhone Ultra (6.7\")",
+  "category": "phone",
+  "screen": {
+    "width_px": 1080,
+    "height_px": 2400,
+    "density": 3.0,
+    "refresh_hz": 120,
+    "safe_area": { "top": 48, "right": 24, "bottom": 34, "left": 24 },
+    "dynamic_island": true,
+    "notch": false,
+    "rounded_corners": 48,
+    "orientation": "portrait"
+  },
+  "input": { "touch": true, "keyboard": true, "mouse": false, "barcode_scanner": false, "thermal_printer": false, "virtual_keys": true },
+  "sensors": { "accelerometer": true, "gyroscope": true, "proximity": true, "ambient_light": true, "gps": true, "fingerprint": true },
+  "battery": { "capacity_mah": 5000, "max_charge": 100, "health": 100 },
+  "features": ["dynamic-island", "bangla-virtual-keyboard", "multi-window-phone"]
+}
