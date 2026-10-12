@@ -37,6 +37,16 @@ jobs:
           out=$(grep -aE '(--- FAIL|^FAIL|panic:|fatal error:|_test\.go:[0-9]+:|no such|timed out|listen|dial)' test-output.txt | tr -d '\r' | tr '\n' '~' | cut -c1-6000)
           echo "::error title=test-failures::$out"
 
+      - name: macOS diagnostics
+        if: failure() && runner.os == 'macOS'
+        shell: bash
+        run: |
+          diag="$(uname -a)"
+          diag="$diag~go: $(go version) GOOS=$(go env GOOS) GOARCH=$(go env GOARCH) CGO=$(go env CGO_ENABLED)"
+          diag="$diag~--- verbose qemu ---~$(go test -v ./internal/qemu/ 2>&1 | tr -d '\r' | tr '\n' '~' | tail -c 2500)"
+          diag="$diag~--- verbose lsp ---~$(go test -v ./internal/lsp/ 2>&1 | tr -d '\r' | tr '\n' '~' | tail -c 1500)"
+          echo "::error title=macos-diag::$diag"
+
       - name: Build
         run: |
           go build -o bin/nilemu .
