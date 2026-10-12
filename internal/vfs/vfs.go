@@ -272,11 +272,10 @@ func evalExistingAncestors(target string) (string, error) {
 }
 
 func hasVolumePrefix(v string) bool {
-	if runtime.GOOS != "windows" {
-		// Volume prefixes (C:) and UNC paths (\\server\share) are Windows-only
-		// concepts. On Unix, a path like "a:b" is a valid filename.
-		return false
-	}
+	// Volume prefixes (C:) and UNC paths (\\server\share) are rejected on every
+	// platform: the virtual filesystem is a platform-neutral namespace, and a
+	// path like "C:/x" or "//host/share" must never be reinterpreted as a
+	// relative name by an OS that does not treat it as absolute.
 	if len(v) >= 2 && v[1] == ':' {
 		c := v[0]
 		if c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' {
