@@ -41,11 +41,15 @@ jobs:
         if: failure() && runner.os == 'macOS'
         shell: bash
         run: |
-          diag="$(uname -a)"
-          diag="$diag~go: $(go version) GOOS=$(go env GOOS) GOARCH=$(go env GOARCH) CGO=$(go env CGO_ENABLED)"
-          diag="$diag~--- verbose qemu ---~$(go test -v ./internal/qemu/ 2>&1 | tr -d '\r' | tr '\n' '~' | tail -c 2500)"
-          diag="$diag~--- verbose lsp ---~$(go test -v ./internal/lsp/ 2>&1 | tr -d '\r' | tr '\n' '~' | tail -c 1500)"
-          echo "::error title=macos-diag::$diag"
+          set +e
+          info="uname=$(uname -a) | go=$(go version) | GOOS=$(go env GOOS)/$(go env GOARCH) CGO=$(go env CGO_ENABLED) | ulimit_n=$(ulimit -n)"
+          q=$(go test -v -count=1 ./internal/qemu/ 2>&1 | tr -d '\r' | tr '\n' '~' | tail -c 2200)
+          n=$(go test -v -count=1 ./cmd/nildap/ 2>&1 | tr -d '\r' | tr '\n' '~' | tail -c 2200)
+          t=$(tail -c 1200 test-output.txt | tr -d '\r' | tr '\n' '~')
+          echo "::error title=macos-env::$info"
+          echo "::error title=macos-qemu::$q"
+          echo "::error title=macos-nildap::$n"
+          echo "::error title=macos-tail::$t"
 
       - name: Build
         run: |
