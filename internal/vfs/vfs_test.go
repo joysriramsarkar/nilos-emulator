@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"testing"
 )
 
@@ -85,5 +86,67 @@ func TestSymlinkEscapeRejected(t *testing.T) {
 	}
 	if _, err := fs.Resolve("link/secret.txt"); err == nil {
 		t.Fatal("expected symlink escape to be rejected")
+	}
+}
+
+func TestCaseInsensitiveWithinRoot(t *testing.T) {
+	if runtime.GOOS != "windows" && runtime.GOOS != "darwin" {
+		t.Skip("case-insensitive filesystem test")
+	}
+	root := "/tmp/Sandbox"
+	if !withinRoot(root, "/tmp/sandbox/file.txt") {
+		t.Fatal("expected case-insensitive withinRoot to return true")
+	}
+	if !withinRoot(root, "/tmp/SANDBOX") {
+		t.Fatal("expected case-insensitive withinRoot to match same path")
+	}
+	if withinRoot(root, "/tmp/sandbox-evil/file.txt") {
+		t.Fatal("expected case-insensitive withinRoot to reject non-prefix path")
+	}
+	if withinRoot(root, "/tmp/other/file.txt") {
+		t.Fatal("expected case-insensitive withinRoot to reject different directory")
+	}
+}
+
+func TestSymlinkedRoot(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("symlink creation may require privileges on Windows")
+	}
+	base := t.TempDir()
+	realDir := filepath.Join(base, "real")
+	if err := os.MkdirAll(realDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	linkDir := filepath.Join(base, "link")
+	if err := os.Symlink(realDir, linkDir); err != nil {
+		t.Skip("symlink unsupported")
+	}
+	fs, err := New(filepath.Join(linkDir, "sb"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	resolved, err := fs.Resolve("/file.txt")
+	if err != nil {
+		t.Fatalf("expected resolution through symlinked root to succeed: %v", err)
+	}
+	if !strings.HasPrefix(resolved, realDir) {
+		t.Fatalf("unexpected resolved path: %s (expected under %s)", resolved, realDir)
+	}
+}
+
+func TestColonInFilename(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("colon is invalid in Windows filenames")
+	}
+	fs, _ := New(filepath.Join(t.TempDir(), "sb"))
+	if err := fs.WriteFile("/a:b.txt", []byte("x")); err != nil {
+		t.Fatalf("expected colon in filename to work on Unix: %v", err)
+	}
+	data, err := fs.ReadFile("/a:b.txt")
+	if err != nil {
+		t.Fatalf("expected to read file with colon in name: %v", err)
+	}
+	if string(data) != "x" {
+		t.Fatalf("unexpected content: %s", data)
 	}
 }

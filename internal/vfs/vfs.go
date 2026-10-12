@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"sort"
 	"strings"
 )
@@ -17,7 +18,8 @@ var ErrEscape = errors.New("vfs: path escapes virtual filesystem")
 
 // FS is a sandboxed filesystem rooted at Root.
 type FS struct {
-	root string
+	root         string
+	resolvedRoot string
 }
 
 // New creates the root directory if needed and returns an FS.
@@ -29,7 +31,11 @@ func New(root string) (*FS, error) {
 	if err := os.MkdirAll(abs, 0o755); err != nil {
 		return nil, err
 	}
-	return &FS{root: abs}, nil
+	resolved, err := filepath.EvalSymlinks(abs)
+	if err != nil {
+		resolved = abs
+	}
+	return &FS{root: abs, resolvedRoot: resolved}, nil
 }
 
 // Root returns the absolute host path of the sandbox root.
@@ -66,7 +72,7 @@ func (fs *FS) Resolve(virtualPath string) (string, error) {
 	// If the path (or an ancestor) already exists, make sure no symlink
 	// redirects us outside the root.
 	if resolved, err := evalExistingAncestors(target); err == nil {
-		if !withinRoot(fs.root, resolved) {
+		if !withinRoot(fs.resolvedRoot, resolved) {
 			return "", ErrEscape
 		}
 		target = resolved
@@ -215,9 +221,31 @@ func withinRoot(root, target string) bool {
 		return false
 	}
 	if rel == ".." || strings.HasPrefix(rel, ".."+string(os.PathSeparator)) {
+		if runtime.GOOS == "windows" || runtime.GOOS == "darwin" {
+			return caseInsensitiveWithin(root, target)
+		}
 		return false
 	}
 	return !filepath.IsAbs(rel)
+}
+
+// caseInsensitiveWithin reports whether target is inside root, comparing
+// path components case-insensitively. It is used on Windows and macOS where
+// the filesystem is case-insensitive and filepath.Rel can produce false
+// positives when the case differs.
+func caseInsensitiveWithin(root, target string) bool {
+	rootSlash := filepath.ToSlash(root)
+	targetSlash := filepath.ToSlash(target)
+	if len(targetSlash) < len(rootSlash) {
+		return false
+	}
+	if !strings.EqualFold(targetSlash[:len(rootSlash)], rootSlash) {
+		return false
+	}
+	if len(targetSlash) == len(rootSlash) {
+		return true
+	}
+	return targetSlash[len(rootSlash)] == '/'
 }
 
 // evalExistingAncestors walks up until it finds an existing path, resolving
@@ -244,6 +272,11 @@ func evalExistingAncestors(target string) (string, error) {
 }
 
 func hasVolumePrefix(v string) bool {
+	if runtime.GOOS != "windows" {
+		// Volume prefixes (C:) and UNC paths (\\server\share) are Windows-only
+		// concepts. On Unix, a path like "a:b" is a valid filename.
+		return false
+	}
 	if len(v) >= 2 && v[1] == ':' {
 		c := v[0]
 		if c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' {

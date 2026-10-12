@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 )
 
@@ -56,14 +57,11 @@ func (g *Guard) Check(p string) (string, error) {
 	}
 
 	for _, root := range g.roots {
-		if root == abs {
-			return abs, nil
+		resolvedRoot, rerr := filepath.EvalSymlinks(root)
+		if rerr != nil {
+			resolvedRoot = root
 		}
-		rel, err := filepath.Rel(root, abs)
-		if err != nil {
-			continue
-		}
-		if rel != ".." && !strings.HasPrefix(rel, ".."+string(os.PathSeparator)) && !filepath.IsAbs(rel) {
+		if withinRoot(resolvedRoot, abs) {
 			return abs, nil
 		}
 	}
@@ -95,4 +93,42 @@ func resolveExisting(p string) (string, error) {
 		tail = append([]string{filepath.Base(cur)}, tail...)
 		cur = parent
 	}
+}
+
+func withinRoot(root, target string) bool {
+	root = filepath.Clean(root)
+	target = filepath.Clean(target)
+	if target == root {
+		return true
+	}
+	rel, err := filepath.Rel(root, target)
+	if err != nil {
+		return false
+	}
+	if rel == ".." || strings.HasPrefix(rel, ".."+string(os.PathSeparator)) {
+		if runtime.GOOS == "windows" || runtime.GOOS == "darwin" {
+			return caseInsensitiveWithin(root, target)
+		}
+		return false
+	}
+	return !filepath.IsAbs(rel)
+}
+
+// caseInsensitiveWithin reports whether target is inside root, comparing
+// path components case-insensitively. It is used on Windows and macOS where
+// the filesystem is case-insensitive and filepath.Rel can produce false
+// positives when the case differs.
+func caseInsensitiveWithin(root, target string) bool {
+	rootSlash := filepath.ToSlash(root)
+	targetSlash := filepath.ToSlash(target)
+	if len(targetSlash) < len(rootSlash) {
+		return false
+	}
+	if !strings.EqualFold(targetSlash[:len(rootSlash)], rootSlash) {
+		return false
+	}
+	if len(targetSlash) == len(rootSlash) {
+		return true
+	}
+	return targetSlash[len(rootSlash)] == '/'
 }
