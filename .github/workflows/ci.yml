@@ -25,7 +25,18 @@ jobs:
         run: go vet ./...
 
       - name: Test
-        run: go test ./...
+        shell: bash
+        run: go test ./... 2>&1 | tee test-output.txt
+
+      # Emit failing test lines as workflow annotations so failures are visible
+      # from the check-run API and the summary without downloading job logs.
+      - name: Surface test failures
+        if: failure()
+        shell: bash
+        run: |
+          grep -aE '(--- FAIL|^FAIL|panic:|_test\.go:[0-9]+:)' test-output.txt | sort -u | while IFS= read -r line; do
+            echo "::error::$line"
+          done || true
 
       - name: Build
         run: |
