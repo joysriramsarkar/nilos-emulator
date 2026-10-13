@@ -19,4 +19,5 @@
 - `go test ./...` + golden SVG + replay determinism সবুজ; প্রোটোকল বদলে `docs/protocol.md` + ফিক্সচার একসাথে।
 
 ## এই সেশনে
-- [ ] `go test ./...` + ফলাফল রেকর্ড।
+- [x] 13 Oct: `go test ./...` সবুজ + golden SVG।
+- [x] 13 Oct: deterministic replay gate (`internal/runtime/replay_determinism_test.go`) — `nilctl replay --instant` path: live vs replay vs replay patch stream identical।
