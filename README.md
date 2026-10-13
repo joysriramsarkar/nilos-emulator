@@ -208,4 +208,4 @@ os/ (qemu_bridge.go)       optional system mode
 
 ## 📜 License
 
-MIT License © 2026 Joy Sriram Sarkar & Nilang Core Team
+AGPL-3.0 © 2026 Joy Sriram Sarkar & Nilang Core Team. See [`LICENSE`](./LICENSE).
