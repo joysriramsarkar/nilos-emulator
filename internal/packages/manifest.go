@@ -16,8 +16,8 @@ type Limits struct {
 	CPUPct   int `json:"cpu_pct,omitempty"`
 }
 
-// Manifest is the metadata file (manifest.json) at the root of a .nilax
-// bundle.
+// Manifest is the metadata file (manifest.json) at the root of a .nilax bundle.
+// It supports both format_version 1 (canonical nilLang contract) and emulator format.
 type Manifest struct {
 	ID          string   `json:"id"`
 	Name        string   `json:"name"`
@@ -29,20 +29,40 @@ type Manifest struct {
 	Permissions []string `json:"permissions,omitempty"`
 	Devices     []string `json:"devices,omitempty"`
 	Limits      *Limits  `json:"limits,omitempty"`
+
+	// Canonical format_version 1 fields (nilLang / onuron_project contract):
+	FormatVersion int      `json:"format_version,omitempty"`
+	AppName       string   `json:"app_name,omitempty"`
+	AppVersion    string   `json:"app_version,omitempty"`
+	EntryBytecode string   `json:"entry_bytecode,omitempty"`
+	Capabilities  []string `json:"capabilities,omitempty"`
+	Targets       []string `json:"targets,omitempty"`
 }
 
 // ParseManifest decodes and validates manifest bytes.
 func ParseManifest(data []byte) (*Manifest, error) {
 	var m Manifest
-	dec := json.NewDecoder(strings.NewReader(string(data)))
-	dec.DisallowUnknownFields()
-	if err := dec.Decode(&m); err != nil {
-		// Retry leniently so forward-compatible unknown fields do not break
-		// older emulator versions.
-		if jerr := json.Unmarshal(data, &m); jerr != nil {
-			return nil, fmt.Errorf("invalid manifest json: %w", jerr)
-		}
+	if err := json.Unmarshal(data, &m); err != nil {
+		return nil, fmt.Errorf("invalid manifest json: %w", err)
 	}
+
+	// Normalize canonical format_version 1 fields into the common model:
+	if m.ID == "" && m.AppName != "" {
+		m.ID = m.AppName
+	}
+	if m.Name == "" && m.AppName != "" {
+		m.Name = m.AppName
+	}
+	if m.Version == "" && m.AppVersion != "" {
+		m.Version = m.AppVersion
+	}
+	if m.Entry == "" && m.EntryBytecode != "" {
+		m.Entry = m.EntryBytecode
+	}
+	if len(m.Permissions) == 0 && len(m.Capabilities) > 0 {
+		m.Permissions = m.Capabilities
+	}
+
 	if err := m.Validate(); err != nil {
 		return nil, err
 	}
@@ -66,12 +86,22 @@ func (m *Manifest) Validate() error {
 	if m.Entry == "" {
 		return errors.New("manifest.entry is required")
 	}
-	if !strings.HasPrefix(m.Entry, "payload/") {
-		return errors.New("manifest.entry must be inside payload/")
+
+	// Path safety checks
+	if strings.HasPrefix(m.Entry, "/") || strings.HasPrefix(m.Entry, "\\") || strings.Contains(m.Entry, "..") {
+		return errors.New("manifest.entry must be a safe relative path")
 	}
-	if m.Icon != "" && !strings.HasPrefix(m.Icon, "payload/") {
-		return errors.New("manifest.icon must be inside payload/ if provided")
+
+	// For legacy bundles without format_version, enforce payload/ prefix convention
+	if m.FormatVersion == 0 {
+		if !strings.HasPrefix(m.Entry, "payload/") {
+			return errors.New("manifest.entry must be inside payload/")
+		}
+		if m.Icon != "" && !strings.HasPrefix(m.Icon, "payload/") {
+			return errors.New("manifest.icon must be inside payload/ if provided")
+		}
 	}
+
 	seen := map[string]bool{}
 	for _, p := range m.Permissions {
 		p = strings.TrimSpace(p)
