@@ -86,14 +86,10 @@ func main() {
 	mux.HandleFunc("/api/nilang/hir", handleNilangHIR)
 	mux.HandleFunc("/api/nilang/run", handleRunNilang)
 
-	// ─── 5. Nil-LSP / NDB Debugger ─────────────────────────────────────
+	// ─── 5. Nil-LSP ─────────────────────────────────────────────────────
 	mux.HandleFunc("/api/lsp/analyze", handleLSPAnalyze)
 	mux.HandleFunc("/api/lsp/complete", handleLSPComplete)
 	mux.HandleFunc("/api/lsp/hover", handleLSPHover)
-	mux.HandleFunc("/api/ndb/session", handleNDBSession)
-	mux.HandleFunc("/api/ndb/step", handleNDBStep)
-	mux.HandleFunc("/api/ndb/breakpoints", handleNDBBreakpoints)
-	mux.HandleFunc("/api/ndb/eval", handleNDBEval)
 
 	// ─── 6. IDE Extensions ─────────────────────────────────────────────
 	mux.HandleFunc("/api/extensions/list", handleExtensionsList)
