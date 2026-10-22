@@ -42,17 +42,17 @@ type PathGuard interface {
 type Device struct {
 	mu sync.Mutex
 
-	ID         string                    `json:"id"`
-	Serial     string                    `json:"serial"`
-	Name       string                    `json:"name"`
-	ProfileID  string                    `json:"profile_id"`
-	State      DeviceState               `json:"state,omitempty"`
-	CreatedAt  int64                     `json:"created_at"`
-	LastBootAt int64                     `json:"last_boot_at"`
-	Installed  map[string]InstalledApp   `json:"installed,omitempty"`
-	Running    map[string]AppInstance    `json:"running,omitempty"`
-	Settings   DeviceSettings            `json:"settings"`
-	StorageDir string                    `json:"storage_dir,omitempty"`
+	ID         string                  `json:"id"`
+	Serial     string                  `json:"serial"`
+	Name       string                  `json:"name"`
+	ProfileID  string                  `json:"profile_id"`
+	State      DeviceState             `json:"state,omitempty"`
+	CreatedAt  int64                   `json:"created_at"`
+	LastBootAt int64                   `json:"last_boot_at"`
+	Installed  map[string]InstalledApp `json:"installed,omitempty"`
+	Running    map[string]AppInstance  `json:"running,omitempty"`
+	Settings   DeviceSettings          `json:"settings"`
+	StorageDir string                  `json:"storage_dir,omitempty"`
 	cancelBoot context.CancelFunc
 }
 

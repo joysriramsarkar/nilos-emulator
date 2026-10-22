@@ -166,7 +166,8 @@ func (s *Server) handleDevices(w http.ResponseWriter, r *http.Request, segs []st
 		switch r.Method {
 		case http.MethodGet:
 			s.writeJSON(w, http.StatusOK, s.deviceView(dev))
-		case http.MethodDelete:			if err := s.mgr.DeleteDevice(id); err != nil {
+		case http.MethodDelete:
+			if err := s.mgr.DeleteDevice(id); err != nil {
 				s.error(w, http.StatusInternalServerError, err.Error())
 				return
 			}

@@ -29,19 +29,19 @@ func Parse(raw json.RawMessage) (Node, error) {
 
 // Options controls rendering.
 type Options struct {
-	Width     int
-	Height    int
-	Theme     string
-	Currency  string
-	SafeTop   int
+	Width      int
+	Height     int
+	Theme      string
+	Currency   string
+	SafeTop    int
 	SafeBottom int
 }
 
 const (
-	pad     = 12
-	lineH   = 30
-	btnH    = 44
-	rowGap  = 8
+	pad    = 12
+	lineH  = 30
+	btnH   = 44
+	rowGap = 8
 )
 
 // SVG renders the tree to an SVG document of the requested size.
@@ -68,9 +68,9 @@ func SVG(root Node, opt Options) string {
 }
 
 type cursor struct {
-	x, y  int
-	width int
-	fg    string
+	x, y   int
+	width  int
+	fg     string
 	accent string
 }
 

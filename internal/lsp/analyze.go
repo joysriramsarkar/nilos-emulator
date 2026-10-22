@@ -99,8 +99,8 @@ func Hover(symbol string) HoverInfo {
 		symbol = "চল"
 	}
 	docs := map[string]HoverInfo{
-		"চল": {Symbol: "চল", Type: "কীওয়ার্ড (Keyword)", Signature: "চল [নাম] = [মান]", Description: "নীলাং-এ নতুন ভেরিয়েবল ডিফাইন করার জন্য 'চল' ব্যবহার করা হয়।", Examples: []string{`চল বার্তা = "স্বাগতম!";`, "চল সংখ্যা = ১০;"}},
-		"ফাংশন": {Symbol: "ফাংশন", Type: "ফাংশন ডিক্লেয়ারেশন (Keyword)", Signature: "ফাংশন [নাম]([প্যারামিটারসমূহ]) { ... }", Description: "নীলাং কোডব্লককে রিইউজেবল ফাংশন হিসেবে ডিক্লেয়ার করে।", Examples: []string{"ফাংশন যোগ(ক, খ) {\n    ফেরত ক + খ;\n}"}},
+		"চল":         {Symbol: "চল", Type: "কীওয়ার্ড (Keyword)", Signature: "চল [নাম] = [মান]", Description: "নীলাং-এ নতুন ভেরিয়েবল ডিফাইন করার জন্য 'চল' ব্যবহার করা হয়।", Examples: []string{`চল বার্তা = "স্বাগতম!";`, "চল সংখ্যা = ১০;"}},
+		"ফাংশন":      {Symbol: "ফাংশন", Type: "ফাংশন ডিক্লেয়ারেশন (Keyword)", Signature: "ফাংশন [নাম]([প্যারামিটারসমূহ]) { ... }", Description: "নীলাং কোডব্লককে রিইউজেবল ফাংশন হিসেবে ডিক্লেয়ার করে।", Examples: []string{"ফাংশন যোগ(ক, খ) {\n    ফেরত ক + খ;\n}"}},
 		"@Component": {Symbol: "@Component", Type: "আলাপ ডেকোরেটর (Decorator)", Signature: "@Component ফাংশন ViewName() { ... }", Description: "আলাপ ডিক্লারেটিভ ইউআই ইঞ্জিনে একটি ভিজ্যুয়াল কম্পোনেন্ট তৈরি করে।", Examples: []string{"@Component\nফাংশন NoteCard() { ফেরত <Card>...</Card>; }"}},
 	}
 	if info, ok := docs[symbol]; ok {

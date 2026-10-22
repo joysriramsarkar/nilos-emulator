@@ -23,16 +23,16 @@ type FaultRule struct {
 
 // Config configures a Dispatcher for one device.
 type Config struct {
-	DeviceID  string
-	VFS       *vfs.FS
-	Permit    func(device, op string) error
-	OnLog     func(tag, msg string)
-	WidthPx   int
-	HeightPx  int
-	DPR       float64
-	Locale    string
-	ClockISO  string
-	Freeze    bool
+	DeviceID string
+	VFS      *vfs.FS
+	Permit   func(device, op string) error
+	OnLog    func(tag, msg string)
+	WidthPx  int
+	HeightPx int
+	DPR      float64
+	Locale   string
+	ClockISO string
+	Freeze   bool
 }
 
 // Dispatcher routes hal.call operations to virtual devices.
@@ -49,9 +49,9 @@ type Dispatcher struct {
 	online      bool
 	latencyMs   int
 
-	clock   time.Time
-	frozen  bool
-	tz      string
+	clock  time.Time
+	frozen bool
+	tz     string
 
 	clipboard     string
 	notifications []Notification
@@ -441,8 +441,8 @@ func (d *Dispatcher) notificationCall(op string, args json.RawMessage) (any, err
 		}
 		_ = json.Unmarshal(args, &a)
 		n := Notification{
-			ID:      fmt.Sprintf("notif-%d", time.Now().UnixNano()),
-			Title:   a.Title, Body: a.Body, AppID: a.AppID, Created: time.Now().UnixMilli(),
+			ID:    fmt.Sprintf("notif-%d", time.Now().UnixNano()),
+			Title: a.Title, Body: a.Body, AppID: a.AppID, Created: time.Now().UnixMilli(),
 		}
 		d.notifications = append(d.notifications, n)
 		return n, nil
@@ -550,13 +550,13 @@ func (d *Dispatcher) deviceCall(op string, args json.RawMessage) (any, error) {
 
 // State is a JSON-friendly snapshot for the control panel.
 type State struct {
-	Battery      int            `json:"battery"`
-	Charging     bool           `json:"charging"`
-	NetworkMode  string         `json:"network_mode"`
-	Online       bool           `json:"online"`
-	LatencyMs    int            `json:"latency_ms"`
-	Volume       int            `json:"volume"`
-	Brightness   int            `json:"brightness"`
+	Battery       int            `json:"battery"`
+	Charging      bool           `json:"charging"`
+	NetworkMode   string         `json:"network_mode"`
+	Online        bool           `json:"online"`
+	LatencyMs     int            `json:"latency_ms"`
+	Volume        int            `json:"volume"`
+	Brightness    int            `json:"brightness"`
 	Notifications []Notification `json:"notifications,omitempty"`
 }
 

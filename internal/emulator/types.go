@@ -140,16 +140,16 @@ type AppInstance struct {
 
 // DeviceInfo is the JSON-facing snapshot of a device.
 type DeviceInfo struct {
-	ID            string                 `json:"id"`
-	Serial        string                 `json:"serial"`
-	Name          string                 `json:"name"`
-	ProfileID     string                 `json:"profile_id"`
-	State         DeviceState            `json:"state"`
-	CreatedAt     int64                  `json:"created_at"`
-	LastBootAt    int64                  `json:"last_boot_at"`
+	ID            string                  `json:"id"`
+	Serial        string                  `json:"serial"`
+	Name          string                  `json:"name"`
+	ProfileID     string                  `json:"profile_id"`
+	State         DeviceState             `json:"state"`
+	CreatedAt     int64                   `json:"created_at"`
+	LastBootAt    int64                   `json:"last_boot_at"`
 	InstalledApps map[string]InstalledApp `json:"installed_apps"`
-	Settings      DeviceSettings         `json:"settings"`
-	RunningApps   map[string]AppInstance `json:"running_apps"`
+	Settings      DeviceSettings          `json:"settings"`
+	RunningApps   map[string]AppInstance  `json:"running_apps"`
 }
 
 // nowMillis returns the current Unix time in milliseconds.

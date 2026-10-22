@@ -23,9 +23,9 @@ var (
 	store     *Store
 	startTime = time.Now()
 
-	cfg      config.Config
-	devMgr   *emulator.Manager
-	sup      *supervisor.Supervisor
+	cfg       config.Config
+	devMgr    *emulator.Manager
+	sup       *supervisor.Supervisor
 	workspace *sandbox.Guard
 )
 

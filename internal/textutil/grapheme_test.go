@@ -7,12 +7,12 @@ import (
 
 func TestClustersBangla(t *testing.T) {
 	cases := map[string][]string{
-		"ক্ষমা":     {"ক্ষ", "মা"},          // conjunct then ma+aa
-		"কি":       {"কি"},                 // ka + i-matra
-		"দ্বন্দ্ব":   {"দ্ব", "ন্দ্ব"},        // stacked conjuncts
-		"র্যাব":    {"র্যা", "ব"},          // ra+virama+ya, then ba
-		"abc":     {"a", "b", "c"},
-		"":        nil,
+		"ক্ষমা":    {"ক্ষ", "মা"},    // conjunct then ma+aa
+		"কি":       {"কি"},           // ka + i-matra
+		"দ্বন্দ্ব": {"দ্ব", "ন্দ্ব"}, // stacked conjuncts
+		"র্যাব":    {"র্যা", "ব"},    // ra+virama+ya, then ba
+		"abc":      {"a", "b", "c"},
+		"":         nil,
 	}
 	for in, want := range cases {
 		got := Clusters(in)
