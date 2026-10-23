@@ -18,11 +18,11 @@ var (
 )
 
 const (
-	jobInfoClassExtendedLimit      = 9
-	jobObjectLimitProcessMemory    = 0x00000100
-	jobObjectLimitJobMemory        = 0x00000200
-	processSetQuota                = 0x0100
-	processTerminate               = 0x0001
+	jobInfoClassExtendedLimit   = 9
+	jobObjectLimitProcessMemory = 0x00000100
+	jobObjectLimitJobMemory     = 0x00000200
+	processSetQuota             = 0x0100
+	processTerminate            = 0x0001
 )
 
 type jobObjectBasicLimitInformation struct {

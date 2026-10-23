@@ -184,10 +184,10 @@ Generated: %s
 `, time.Now().Format(time.RFC1123))
 
 	files := map[string]string{
-		"package.json":                   packageJSON,
-		"language-configuration.json":    langConfig,
+		"package.json":                    packageJSON,
+		"language-configuration.json":     langConfig,
 		"syntaxes/nilang.tmLanguage.json": tmLanguage,
-		"README.md":                      readmeMD,
+		"README.md":                       readmeMD,
 	}
 
 	for path, content := range files {

@@ -21,11 +21,11 @@ type ReceiptDoc struct {
 
 // ESC/POS command bytes.
 var (
-	escInit     = []byte{0x1B, 0x40}       // ESC @
-	escAlign    = []byte{0x1B, 0x61}       // ESC a n
-	escBold     = []byte{0x1B, 0x45}       // ESC E n
-	escSize     = []byte{0x1D, 0x21}       // GS ! n
-	escCut      = []byte{0x1D, 0x56, 0x00} // GS V 0
+	escInit  = []byte{0x1B, 0x40}       // ESC @
+	escAlign = []byte{0x1B, 0x61}       // ESC a n
+	escBold  = []byte{0x1B, 0x45}       // ESC E n
+	escSize  = []byte{0x1D, 0x21}       // GS ! n
+	escCut   = []byte{0x1D, 0x56, 0x00} // GS V 0
 )
 
 // EncodeReceipt builds a small ESC/POS byte stream from plain text lines.

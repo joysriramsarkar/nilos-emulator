@@ -9,11 +9,11 @@ import (
 // standalone debugging and tests. It implements the same Backend contract the
 // real runtime adapter will.
 type MockBackend struct {
-	source        string
-	line          int
-	count         int
-	breakpoints   map[int]bool
-	nextBpID      int
+	source      string
+	line        int
+	count       int
+	breakpoints map[int]bool
+	nextBpID    int
 }
 
 // NewMockBackend creates the sample program.

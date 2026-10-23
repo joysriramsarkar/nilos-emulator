@@ -1,3 +1,3 @@
 module github.com/joysriramsarkar/nilos-emulator
 
-go 1.21
+go 1.25.0

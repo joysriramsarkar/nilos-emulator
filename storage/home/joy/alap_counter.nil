@@ -1,5 +1,5 @@
 // alap_counter.nil — Alap Reactive UI কাউন্টার স্ক্রিপ্ট
-var counter = 0
+let counter = 0
 for step in 1..8 {
     counter = counter + 10
     print("কাউন্টার ধাপ: ", step, " -> বর্তমান মান: ", counter)

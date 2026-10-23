@@ -217,9 +217,19 @@ func extractPayload(files []*zip.File, destDir string, opts Options) error {
 	if err := os.MkdirAll(destDir, 0o755); err != nil {
 		return err
 	}
+	hasPayloadPrefix := false
+	for _, f := range files {
+		if strings.HasPrefix(f.Name, "payload/") {
+			hasPayloadPrefix = true
+			break
+		}
+	}
 	var total int64
 	for _, f := range files {
-		if !strings.HasPrefix(f.Name, "payload/") {
+		if f.Name == "manifest.json" || f.Name == "SIGNATURE.json" || strings.HasSuffix(f.Name, ".sig") {
+			continue
+		}
+		if hasPayloadPrefix && !strings.HasPrefix(f.Name, "payload/") {
 			continue
 		}
 		target, err := SafeJoin(destDir, f.Name)

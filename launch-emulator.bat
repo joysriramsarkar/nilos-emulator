@@ -12,25 +12,19 @@ echo.
 cd /d "%~dp0"
 
 if exist "bin\nilsim.exe" (
-    echo [launch] Starting Onuron OS High-Fidelity Simulator...
+    echo [launch] Starting Onuron OS Desktop Simulator...
     start "" "%~dp0bin\nilsim.exe"
     goto :done
 )
 
-if exist "nilphone.exe" (
-    echo [launch] Starting NilOS Native Simulator...
-    start "" "%~dp0nilphone.exe"
+if exist "nilos-emulator.exe" (
+    echo [launch] Starting NilOS Studio App Runtime Emulator...
+    start "" "%~dp0nilos-emulator.exe"
     goto :done
 )
 
-if exist "simulator\main.go" (
-    echo [build] Compiling native simulator binary...
-    cd /d "%~dp0simulator"
-    go build -o ..\nilphone.exe .
-    cd /d "%~dp0"
-    start "" "%~dp0nilphone.exe"
-    goto :done
-)
+echo [build] Building and starting NilOS Studio Emulator...
+go run .
 
 :done
 echo [OK] Native Onuron OS Simulator is active!

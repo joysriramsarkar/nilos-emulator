@@ -42,18 +42,18 @@ type Hello struct {
 
 // Init is the host's reply to Hello.
 type Init struct {
-	Type        string         `json:"t"`
-	Proto       int            `json:"proto"`
-	Device      DeviceInit     `json:"device"`
-	Locale      string         `json:"locale"`
-	Theme       string         `json:"theme"`
-	FontScale   float64        `json:"font_scale,omitempty"`
-	HAL         map[string]any `json:"hal,omitempty"`
-	Permissions []string       `json:"permissions,omitempty"`
-	AppData     string         `json:"app_data,omitempty"`
+	Type        string          `json:"t"`
+	Proto       int             `json:"proto"`
+	Device      DeviceInit      `json:"device"`
+	Locale      string          `json:"locale"`
+	Theme       string          `json:"theme"`
+	FontScale   float64         `json:"font_scale,omitempty"`
+	HAL         map[string]any  `json:"hal,omitempty"`
+	Permissions []string        `json:"permissions,omitempty"`
+	AppData     string          `json:"app_data,omitempty"`
 	SavedState  json.RawMessage `json:"saved_state,omitempty"`
-	Seed        int64          `json:"seed,omitempty"`
-	Animations  *bool          `json:"animations,omitempty"`
+	Seed        int64           `json:"seed,omitempty"`
+	Animations  *bool           `json:"animations,omitempty"`
 }
 
 // InputMsg is a touch/key/text event from host to VM.
